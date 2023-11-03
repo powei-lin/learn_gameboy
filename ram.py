@@ -7,3 +7,6 @@ class Memory:
         self.boot_rom = boot_rom
         self.game_rom = game_rom
         self.ram = [0 for _ in range(2**16)]
+    
+    def get(self, addr: int):
+        pass

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from ram import Memory
 
 INSTRUCTIONS = {
     0x21: ("LD", "HL", "d16"),
@@ -9,7 +10,6 @@ INSTRUCTIONS = {
 
 @dataclass
 class Register:
-    name: str
     num_bit: int
     value: int = 0
 
@@ -17,32 +17,40 @@ class Register:
         self.num_half_bytes = self.num_bit // 4
 
     def __repr__(self) -> str:
-        return f"{self.name:2} 0b{self.value:0{self.num_bit}b} 0x{self.value:0{self.num_half_bytes}x}"
+        return f"0b{self.value:0{self.num_bit}b} 0x{self.value:0{self.num_half_bytes}x}"
 
 
 class CPU:
     def __init__(self, boot_rom: bytes) -> None:
+        self.A = Register(8)
+        self.F = Register(8)
+        self.B = Register(8)
+        self.C = Register(8)
+        self.D = Register(8)
+        self.E = Register(8)
+        self.H = Register(8)
+        self.L = Register(8)
+        self.SP = Register(16)
+        self.PC = Register(16)
         self.registers = {
-            "A": Register("A", 8),
-            "F": Register("F", 8),
-            "B": Register("B", 8),
-            "C": Register("C", 8),
-            "D": Register("D", 8),
-            "E": Register("E", 8),
-            "H": Register("H", 8),
-            "L": Register("L", 8),
-            "SP": Register("SP", 16),
-            "PC": Register("PC", 16),
+            "A": self.A,
+            "F": self.F,
+            "B": self.B,
+            "C": self.C,
+            "D": self.D,
+            "E": self.E,
+            "H": self.H,
+            "L": self.L,
+            "SP": self.SP,
+            "PC": self.PC,
         }
-        self.memory = boot_rom
-        self.ram = [0 for _ in range(2**16)]
 
     def __repr__(self) -> str:
         s = "\n".join([str(v) for v in self.registers.values()])
         return s
 
-    def _fetch(self):
-        opcode = self.memory[self.registers["PC"].value]
+    def _fetch(self, memory: Memory):
+        opcode = memory[self.registers["PC"].value]
         self.registers["PC"].value += 1
         return opcode
 
@@ -70,7 +78,7 @@ class CPU:
 
         print(a, b, c)
 
-    def tick(self):
-        opcode = self._fetch()
+    def tick(self, memory: Memory):
+        opcode = self._fetch(memory)
         print(f"Fetched intruction 0x{opcode:02x}")
         self._execute(opcode)
