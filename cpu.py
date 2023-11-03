@@ -8,6 +8,7 @@ INSTRUCTIONS = {
     0xaf: ("XOR", "A", None),
 }
 
+
 @dataclass
 class Register:
     num_bit: int
@@ -60,13 +61,13 @@ class CPU:
             if c == "d16":
                 if b in self.registers:
                     v = self.memory[self.registers["PC"].value]
-                    v += self.memory[self.registers["PC"].value+1] << 8
+                    v += self.memory[self.registers["PC"].value + 1] << 8
                     self.registers["PC"].value += 2
                     print(f"{v:x}")
                     self.registers[b].value = v
                 else:
                     v0 = self.memory[self.registers["PC"].value]
-                    v1 = self.memory[self.registers["PC"].value+1]
+                    v1 = self.memory[self.registers["PC"].value + 1]
                     self.registers["PC"].value += 2
                     b0, b1 = b
                     self.registers[b0].value = v1
@@ -74,7 +75,6 @@ class CPU:
             elif c in self.registers:
                 print("sss")
                 pass
-
 
         print(a, b, c)
 

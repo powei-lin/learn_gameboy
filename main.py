@@ -12,4 +12,3 @@ for i in range(4):
     cpu.tick()
     print()
     input()
-    

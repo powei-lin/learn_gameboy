@@ -7,5 +7,6 @@ class InstructionBase:
     def execute(cpu: CPU, ram: List[int]):
         raise NotImplementedError
 
+
 class LD_21(InstructionBase):
     pass
