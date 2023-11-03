@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from ram import Memory
+from memory import Memory
 
 INSTRUCTIONS = {
     0x21: ("LD", "HL", "d16"),

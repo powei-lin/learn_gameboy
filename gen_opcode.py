@@ -25,7 +25,7 @@ class InstructionParser:
     flags: str = None
 
     def __repr__(self) -> str:
-        return (f"def {self.name()}(cpu, memory):{NEXT_LINE_INDENT}"
+        return (f"def {self.name()}(cpu: CPU, memory: Memory):{NEXT_LINE_INDENT}"
                 f"# {self.command}{NEXT_LINE_INDENT}"
                 f"# {self.length_duration}{NEXT_LINE_INDENT}"
                 f"# {self.flags}{NEXT_LINE_INDENT}"
@@ -50,6 +50,9 @@ def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
         ofile.write("# Gameboy CPU (LR35902) instruction set has no shift in INSTRUCTION_TABLE\n")
         ofile.write("# Prefix CB has 0x100 shift in INSTRUCTION_TABLE\n")
         ofile.write("\n")
+        ofile.write("from cpu import CPU\n")
+        ofile.write("from memory import Memory\n")
+        ofile.write("\n\n")
         for v in all_ins.values():
             ofile.write(str(v) + "\n\n")
         ofile.write("INSTRUCTION_TABLE = {\n")
@@ -62,8 +65,9 @@ def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
 
 if __name__ == '__main__':
 
-    file_prefix = [("ins.tsv", "IS", 0x000),
-                   ("pre.tsv", "CB", 0x100)]
+    file_prefix = [("./data/cpu_instructions.tsv", "IS", 0x000),
+                   ("./data/prefix_cb.tsv", "CB", 0x100)]
+    ouput_file_name = "generated_opcode.py"
 
     all_ins = {}
     for current_file, prefix, table_shift in file_prefix:
@@ -94,5 +98,5 @@ if __name__ == '__main__':
                                 current_ins[i].flags = item
                                 all_ins[f"0x{current_ins[i].position+table_shift:02x}"] = current_ins[i]
                 count += 1
-    instructions_to_py("generated_instructions.py", all_ins)
-    print("done")
+    instructions_to_py(ouput_file_name, all_ins)
+    print(f"Writing to {ouput_file_name} done")
