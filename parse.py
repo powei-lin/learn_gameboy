@@ -41,7 +41,7 @@ class InstructionParser:
                 return f"cpu.{destination} = cpu.{source}"
             return f"pass # LD {destination} {source}"
         else:
-            return "pass"
+            return "raise NotImplementedError"
 
 
 def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                                 current_ins[i].length_duration = item[0] + ' ' + item[1:]
                             elif count == 2:
                                 current_ins[i].flags = item
-                                print(current_ins[i])
                                 all_ins[f"0x{current_ins[i].position+table_shift:02x}"] = current_ins[i]
                 count += 1
     instructions_to_py("generated_instructions.py", all_ins)
+    print("done")
