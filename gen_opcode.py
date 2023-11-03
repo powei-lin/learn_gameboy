@@ -14,6 +14,7 @@ CPU_REJISTORS = {"A",
                  "L",
                  "SP",
                  "PC"}
+COMBINED_REJISTORS = {"BC", "DE", "HL"}
 
 
 @dataclass
@@ -35,6 +36,8 @@ class InstructionParser:
         return f"{self.prefix}_0x{self.position:02X}"
 
     def impl(self) -> str:
+        if self.flags != "- - - -":
+            return "FFF"
         if self.command[:3] == "LD ":
             destination, source = self.command[3:].split(",")
             if destination in CPU_REJISTORS:
@@ -55,6 +58,13 @@ class InstructionParser:
                     s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
                     s += f"cpu.{destination}.value = v"
                     return s
+                elif source[0] == "(" and source[-1] == ")":
+                    if source[1:-1] in COMBINED_REJISTORS:
+                        s = ""
+                        s += f'addr = cpu.get_value("{source[1:-1]}"){NEXT_LINE_INDENT}'
+                        s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+                        s += f"cpu.{destination}.value = v"
+                        return s
 
             return f"pass # LD {destination} {source}"
         return "raise NotImplementedError"
