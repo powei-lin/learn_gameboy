@@ -9,7 +9,10 @@ class Memory:
         self.ram = [0 for _ in range(2**16)]
 
     def get(self, addr: int):
-        pass
+        if self.initialized:
+            return self.ram[addr]
+        else:
+            return self.boot_rom[addr]
 
     def set(self, addr: int, val: int):
         pass

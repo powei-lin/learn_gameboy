@@ -12,17 +12,25 @@ INSTRUCTIONS = {
 @dataclass
 class Register:
     num_bit: int
-    value: int = 0
+    _value: int = 0
 
     def __post_init__(self):
         self.num_half_bytes = self.num_bit // 4
 
     def __repr__(self) -> str:
-        return f"0b{self.value:0{self.num_bit}b} 0x{self.value:0{self.num_half_bytes}x}"
+        return f"0b{self._value:0{self.num_bit}b} 0x{self._value:0{self.num_half_bytes}x}"
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value: int):
+        self._value = value
 
 
 class CPU:
-    def __init__(self, boot_rom: bytes) -> None:
+    def __init__(self) -> None:
         self.A = Register(8)
         self.F = Register(8)
         self.B = Register(8)
@@ -51,23 +59,23 @@ class CPU:
         return s
 
     def _fetch(self, memory: Memory):
-        opcode = memory[self.registers["PC"].value]
-        self.registers["PC"].value += 1
+        opcode = memory.get(self.registers["PC"].value)
+        self.registers["PC"]._value += 1
         return opcode
 
-    def _execute(self, opcode):
+    def _execute(self, opcode, memory: Memory):
         a, b, c = INSTRUCTIONS[opcode]
         if a == "LD":
             if c == "d16":
                 if b in self.registers:
-                    v = self.memory[self.registers["PC"].value]
-                    v += self.memory[self.registers["PC"].value + 1] << 8
+                    v = memory.get(self.registers["PC"].value)
+                    v += memory.get(self.registers["PC"].value + 1) << 8
                     self.registers["PC"].value += 2
                     print(f"{v:x}")
                     self.registers[b].value = v
                 else:
-                    v0 = self.memory[self.registers["PC"].value]
-                    v1 = self.memory[self.registers["PC"].value + 1]
+                    v0 = memory.get(self.registers["PC"].value)
+                    v1 = memory.get(self.registers["PC"].value + 1)
                     self.registers["PC"].value += 2
                     b0, b1 = b
                     self.registers[b0].value = v1
@@ -81,4 +89,4 @@ class CPU:
     def tick(self, memory: Memory):
         opcode = self._fetch(memory)
         print(f"Fetched intruction 0x{opcode:02x}")
-        self._execute(opcode)
+        self._execute(opcode, memory)
