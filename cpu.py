@@ -66,7 +66,7 @@ class CPU:
         elif reg_name in self.combined_registers:
             ra, rb = self.combined_registers[reg_name]
             rb.value = val & 0xFF
-            ra.value = val >> 8
+            ra.value = (val >> 8)
         else:
             raise NotImplementedError
 
@@ -75,7 +75,7 @@ class CPU:
             return self.registers[reg_name].value
         elif reg_name in self.combined_registers:
             ra, rb = self.combined_registers[reg_name]
-            return ra.value << 8 + rb.value
+            return (ra.value << 8) + rb.value
         raise NotImplementedError
 
     def __repr__(self) -> str:

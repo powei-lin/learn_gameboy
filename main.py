@@ -12,6 +12,7 @@ cpu.PC.value += 3
 print(cpu)
 cpu.set_value("HL", 0xabcd)
 print(cpu)
+print(f'{cpu.get_value("HL"):x}')
 exit()
 
 with open("DMG_ROM.bin", 'rb') as boot_rom:
