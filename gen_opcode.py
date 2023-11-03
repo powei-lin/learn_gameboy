@@ -37,11 +37,27 @@ class InstructionParser:
     def impl(self) -> str:
         if self.command[:3] == "LD ":
             destination, source = self.command[3:].split(",")
-            if destination in CPU_REJISTORS and source in CPU_REJISTORS:
-                return f"cpu.{destination} = cpu.{source}"
+            if destination in CPU_REJISTORS:
+                if source in CPU_REJISTORS:
+                    return f"cpu.{destination}.value = cpu.{source}.value"
+                elif source == "d16":
+                    s = ""
+                    s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+                    s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+                    s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
+                    s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
+                    s += f"cpu.{destination}.value = v"
+                    return s
+                elif source == "d8":
+                    s = ""
+                    s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+                    s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+                    s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+                    s += f"cpu.{destination}.value = v"
+                    return s
+
             return f"pass # LD {destination} {source}"
-        else:
-            return "raise NotImplementedError"
+        return "raise NotImplementedError"
 
 
 def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
