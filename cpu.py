@@ -4,7 +4,7 @@ INSTRUCTIONS = {
     0x21: ("LD", "HL", "d16"),
     0x31: ("LD", "SP", "d16"),
     0x32: ("LD", "(HL-)", "A"),
-    0xaf: ("XOR", "A", None)
+    0xaf: ("XOR", "A", None),
 }
 
 @dataclass
