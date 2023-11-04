@@ -36,15 +36,15 @@ class InstructionParser:
         return f"{self.prefix}_0x{self.position:02X}"
 
     def impl(self) -> str:
+        s = ""
         if self.flags != "- - - -":
-            return "FFF"
+            s += "Has flag\n"
         if self.command[:3] == "LD ":
             destination, source = self.command[3:].split(",")
             if destination in CPU_REJISTORS:
                 if source in CPU_REJISTORS:
                     return f"cpu.{destination}.value = cpu.{source}.value"
                 elif source == "d16":
-                    s = ""
                     s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
                     s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
                     s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
@@ -52,7 +52,6 @@ class InstructionParser:
                     s += f"cpu.{destination}.value = v"
                     return s
                 elif source == "d8":
-                    s = ""
                     s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
                     s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
                     s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
@@ -60,7 +59,6 @@ class InstructionParser:
                     return s
                 elif source[0] == "(" and source[-1] == ")":
                     if source[1:-1] in COMBINED_REJISTORS:
-                        s = ""
                         s += f'addr = cpu.get_value("{source[1:-1]}"){NEXT_LINE_INDENT}'
                         s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
                         s += f"cpu.{destination}.value = v"
@@ -72,7 +70,7 @@ class InstructionParser:
 
 def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
     with open(output, 'w') as ofile:
-        ofile.write("# This file is auto generated. DO NOT MANUALLY MODIFY.\n")
+        ofile.write("# This file is auto-generated. DO NOT MANUALLY MODIFY.\n")
         ofile.write("# Gameboy CPU (LR35902) instruction set has no shift in INSTRUCTION_TABLE\n")
         ofile.write("# Prefix CB has 0x100 shift in INSTRUCTION_TABLE\n")
         ofile.write("\n")
@@ -83,7 +81,7 @@ def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
             ofile.write(str(v) + "\n\n")
         ofile.write("INSTRUCTION_TABLE = {\n")
         for k, v in all_ins.items():
-            ofile.write(f"{SPACE_4}0x{int(k, base=16):03x}: {v.name()},\n")
+            ofile.write(f"{SPACE_4}0x{int(k, base=16):03x}: {v.name()},  # {v.command}\n")
         ofile.write("}\n")
 
     pass
