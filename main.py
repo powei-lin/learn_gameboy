@@ -24,7 +24,7 @@ if __name__ == '__main__':
         rom = boot_rom.read()
     cpu = CPU()
     mem = Memory(rom)
-    for i in range(4):
+    for i in range(14):
         print(f"\n{i}---------------")
         print("CPU:")
         print(cpu)
