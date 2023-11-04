@@ -17,6 +17,8 @@ CPU_REGISTORS = {"A",
 COMBINED_REGISTORS = {"BC", "DE", "HL"}
 ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
 
+FLAG_Z = "0b10000000"
+
 
 @dataclass
 class InstructionParser:
@@ -38,8 +40,8 @@ class InstructionParser:
 
     def impl(self) -> str:
         s = ""
-        if self.flags != "- - - -":
-            s += "Has flag\n"
+        # if self.flags != "- - - -":
+        #     s += f"# Has flag{NEXT_LINE_INDENT}"
         if self.command[:3] == "LD ":
             destination, source = self.command[3:].split(",")
             if destination in ALL_REGISTORS:
@@ -67,7 +69,17 @@ class InstructionParser:
                         s += f'cpu.set_value("{destination}", v)'
                         return s
         elif self.command[:4] == "XOR ":
-            pass
+            operand = self.command[4:]
+            if operand in ALL_REGISTORS:
+                s += f'v = cpu.A.value ^ cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+            elif operand[0] == "(" and operand[-1] == ")" and operand[1:-1] in ALL_REGISTORS:
+                s += f'v = cpu.A.value ^ memory.get("{operand[1:-1]}"){NEXT_LINE_INDENT}'
+            else:
+                return "raise NotImplementedError"
+            s += f"if v == 0:{NEXT_LINE_INDENT}"
+            s += f"{SPACE_4}cpu.F.value |= 0b10000000{NEXT_LINE_INDENT}"
+            s += 'cpu.set_value("A", v)'
+            return s
 
             # return f"r pass # LD {destination} {source}"
         return "raise NotImplementedError"
