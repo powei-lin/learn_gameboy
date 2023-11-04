@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 SPACE_4 = '    '
 NEXT_LINE_INDENT = '\n' + SPACE_4
-CPU_REJISTORS = {"A",
+CPU_REGISTORS = {"A",
                  "F",
                  "B",
                  "C",
@@ -14,7 +14,8 @@ CPU_REJISTORS = {"A",
                  "L",
                  "SP",
                  "PC"}
-COMBINED_REJISTORS = {"BC", "DE", "HL"}
+COMBINED_REGISTORS = {"BC", "DE", "HL"}
+ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
 
 
 @dataclass
@@ -41,30 +42,34 @@ class InstructionParser:
             s += "Has flag\n"
         if self.command[:3] == "LD ":
             destination, source = self.command[3:].split(",")
-            if destination in CPU_REJISTORS:
-                if source in CPU_REJISTORS:
-                    return f"cpu.{destination}.value = cpu.{source}.value"
+            if destination in ALL_REGISTORS:
+                if source in ALL_REGISTORS:
+                    if destination == source:
+                        return "pass  # skip because it's the same register"
+                    return f'cpu.set_value("{destination}", cpu.get_value("{source}"))'
                 elif source == "d16":
                     s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
                     s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
                     s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
                     s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
-                    s += f"cpu.{destination}.value = v"
+                    s += f'cpu.set_value("{destination}", v)'
                     return s
                 elif source == "d8":
                     s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
                     s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
                     s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
-                    s += f"cpu.{destination}.value = v"
+                    s += f'cpu.set_value("{destination}", v)'
                     return s
                 elif source[0] == "(" and source[-1] == ")":
-                    if source[1:-1] in COMBINED_REJISTORS:
+                    if source[1:-1] in ALL_REGISTORS:
                         s += f'addr = cpu.get_value("{source[1:-1]}"){NEXT_LINE_INDENT}'
                         s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
-                        s += f"cpu.{destination}.value = v"
+                        s += f'cpu.set_value("{destination}", v)'
                         return s
+        elif self.command[:4] == "XOR ":
+            pass
 
-            return f"pass # LD {destination} {source}"
+            # return f"r pass # LD {destination} {source}"
         return "raise NotImplementedError"
 
 

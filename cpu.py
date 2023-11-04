@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from memory import Memory
 
-INSTRUCTIONS = {
-    0x21: ("LD", "HL", "d16"),
-    0x31: ("LD", "SP", "d16"),
-    0x32: ("LD", "(HL-)", "A"),
-    0xaf: ("XOR", "A", None),
-}
+# INSTRUCTIONS = {
+#     0x21: ("LD", "HL", "d16"),
+#     0x31: ("LD", "SP", "d16"),
+#     0x32: ("LD", "(HL-)", "A"),
+#     0xaf: ("XOR", "A", None),
+# }
 
 
 @dataclass
@@ -82,35 +82,30 @@ class CPU:
         s = "\n".join([f"{k} {v}" for k, v in self.registers.items()])
         return s
 
-    def _fetch(self, memory: Memory):
-        opcode = memory.get(self.PC.value)
-        self.PC.value += 1
-        return opcode
+    # def _fetch(self, memory: Memory):
+    #     opcode = memory.get(self.PC.value)
+    #     self.PC.value += 1
+    #     return opcode
 
-    def _execute(self, opcode, memory: Memory):
-        a, b, c = INSTRUCTIONS[opcode]
-        if a == "LD":
-            if c == "d16":
-                if b in self.registers:
-                    v = memory.get(self.registers["PC"].value)
-                    v += memory.get(self.registers["PC"].value + 1) << 8
-                    self.registers["PC"].value += 2
-                    print(f"{v:x}")
-                    self.registers[b].value = v
-                else:
-                    v0 = memory.get(self.registers["PC"].value)
-                    v1 = memory.get(self.registers["PC"].value + 1)
-                    self.registers["PC"].value += 2
-                    b0, b1 = b
-                    self.registers[b0].value = v1
-                    self.registers[b1].value = v0
-            elif c in self.registers:
-                print("sss")
-                pass
+    # def _execute(self, opcode, memory: Memory):
+    #     INSTRUCTION_TABLE[opcode](self, memory)
+        # if a == "LD":
+        #     if c == "d16":
+        #         if b in self.registers:
+        #             v = memory.get(self.registers["PC"].value)
+        #             v += memory.get(self.registers["PC"].value + 1) << 8
+        #             self.registers["PC"].value += 2
+        #             print(f"{v:x}")
+        #             self.registers[b].value = v
+        #         else:
+        #             v0 = memory.get(self.registers["PC"].value)
+        #             v1 = memory.get(self.registers["PC"].value + 1)
+        #             self.registers["PC"].value += 2
+        #             b0, b1 = b
+        #             self.registers[b0].value = v1
+        #             self.registers[b1].value = v0
+        #     elif c in self.registers:
+        #         print("sss")
+        #         pass
 
-        print(a, b, c)
-
-    def tick(self, memory: Memory):
-        opcode = self._fetch(memory)
-        print(f"Fetched intruction 0x{opcode:02x}")
-        self._execute(opcode, memory)
+        # print(a, b, c)
