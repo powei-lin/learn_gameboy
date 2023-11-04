@@ -20,6 +20,90 @@ ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
 FLAG_Z = "0b10000000"
 
 
+def get_value_str(source: str):
+    s = ""
+
+    # load value from data
+    if source == "d16":
+        s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+        s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
+        s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
+        return s
+    elif source == "d8":
+        s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+        s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+        return s
+
+    # from registor
+    if source in ALL_REGISTORS:
+        return f'v = cpu.get_value("{source}"){NEXT_LINE_INDENT}'
+
+    # from memory
+    if source[0] == "(" and source[-1] == ")":
+        if source[1:-1] in ALL_REGISTORS:
+            operand = source[1:-1]
+            s += f'addr = cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+            s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+            return s
+        elif source[1:-2] in ALL_REGISTORS:
+            operand = source[1:-2]
+            operator = source[-2]
+            s += f'addr = cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+            s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+            if operator == '-':
+                s += f'cpu.set_value("{operand}", cpu.get_value("{operand}") - 1){NEXT_LINE_INDENT}'
+            elif operator == '+':
+                s += f'cpu.set_value("{operand}", cpu.get_value("{operand}") + 1){NEXT_LINE_INDENT}'
+            return s
+        elif source[1:-1] == "a16":
+            s += f"addr = memory.get(cpu.PC.value){NEXT_LINE_INDENT}"
+            s += f"addr += memory.get(cpu.PC.value + 1) << 8{NEXT_LINE_INDENT}"
+            s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+            s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
+            return s
+
+    return f"raise NotImplementedError{NEXT_LINE_INDENT}"
+
+
+def set_value_str(destination: str):
+    # to registor
+    if destination in ALL_REGISTORS:
+        return f'cpu.set_value("{destination}", v)'
+
+    # to memory
+    if destination[0] == "(" and destination[-1] == ")":
+        if destination[1:-1] in ALL_REGISTORS:
+            operand = destination[1:-1]
+            s = f'addr = cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+            s += f"memory.set(addr, v)"
+            return s
+        elif destination[1:-2] in ALL_REGISTORS:
+            operand = destination[1:-2]
+            operator = destination[-2]
+            s = f'addr = cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+            s += f"memory.set(addr, v){NEXT_LINE_INDENT}"
+            if operator == '-':
+                s += f'cpu.set_value("{operand}", cpu.get_value("{operand}") - 1)'
+            elif operator == '+':
+                s += f'cpu.set_value("{operand}", cpu.get_value("{operand}") + 1)'
+            return s
+        # from addr
+        elif destination[1:-1] == 'a16':
+            s = f"addr = memory.get(cpu.PC.value){NEXT_LINE_INDENT}"
+            s += f"addr += memory.get(cpu.PC.value + 1) << 8{NEXT_LINE_INDENT}"
+            s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
+            s += f"memory.set(addr, v)"
+            return s
+    return "err raise NotImplementedError"
+
+
+def parse_LD(s: str, command: str, flags: str) -> str:
+    destination, source = command[3:].split(",")
+    return get_value_str(source) + set_value_str(destination)
+
+
 @dataclass
 class InstructionParser:
     prefix: str
@@ -40,34 +124,10 @@ class InstructionParser:
 
     def impl(self) -> str:
         s = ""
-        # if self.flags != "- - - -":
-        #     s += f"# Has flag{NEXT_LINE_INDENT}"
+        if self.flags != "- - - -":
+            s += f"# Has flag{NEXT_LINE_INDENT}"
         if self.command[:3] == "LD ":
-            destination, source = self.command[3:].split(",")
-            if destination in ALL_REGISTORS:
-                if source in ALL_REGISTORS:
-                    if destination == source:
-                        return "pass  # skip because it's the same register"
-                    return f'cpu.set_value("{destination}", cpu.get_value("{source}"))'
-                elif source == "d16":
-                    s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
-                    s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
-                    s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
-                    s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
-                    s += f'cpu.set_value("{destination}", v)'
-                    return s
-                elif source == "d8":
-                    s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
-                    s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
-                    s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
-                    s += f'cpu.set_value("{destination}", v)'
-                    return s
-                elif source[0] == "(" and source[-1] == ")":
-                    if source[1:-1] in ALL_REGISTORS:
-                        s += f'addr = cpu.get_value("{source[1:-1]}"){NEXT_LINE_INDENT}'
-                        s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
-                        s += f'cpu.set_value("{destination}", v)'
-                        return s
+            return parse_LD(s, self.command, self.flags)
         elif self.command[:4] == "XOR ":
             operand = self.command[4:]
             if operand in ALL_REGISTORS:

@@ -15,4 +15,4 @@ class Memory:
             return self.boot_rom[addr]
 
     def set(self, addr: int, val: int):
-        pass
+        self.ram[addr] = val
