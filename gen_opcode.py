@@ -17,7 +17,7 @@ CPU_REGISTORS = {"A",
 COMBINED_REGISTORS = {"BC", "DE", "HL"}
 ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
 
-FLAG_Z = "0b10000000"
+FLAG_Z = 0b10000000
 
 
 def get_value_str(source: str):
@@ -136,11 +136,19 @@ class InstructionParser:
                 s += f'v = cpu.A.value ^ memory.get("{operand[1:-1]}"){NEXT_LINE_INDENT}'
             else:
                 return "raise NotImplementedError"
-            s += f"if v == 0:{NEXT_LINE_INDENT}"
-            s += f"{SPACE_4}cpu.F.value |= 0b10000000{NEXT_LINE_INDENT}"
+            s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
             s += 'cpu.set_value("A", v)'
             return s
-
+        elif self.command[:4] == "BIT ":
+            num, operand = self.command[4:].split(",")
+            # s += f"pass # BIT {num} {operand}"
+            if operand in ALL_REGISTORS:
+                s = f'v = cpu.get_value("{operand}") & (1 << {num}){NEXT_LINE_INDENT}'
+                s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
+                s += f'cpu.set_flag("N", False){NEXT_LINE_INDENT}'
+                s += f'cpu.set_flag("H", True)'
+                return s
+            # return s
             # return f"r pass # LD {destination} {source}"
         return "raise NotImplementedError"
 

@@ -78,6 +78,30 @@ class CPU:
             return (ra.value << 8) + rb.value
         raise NotImplementedError
 
+    def set_flag(self, s: str, val: bool):
+        if s == "Z":
+            if val:
+                self.F.value |= 0b10000000
+            else:
+                self.F.value &= 0b01111111
+        elif s == "N":
+            if val:
+                self.F.value |= 0b01000000
+            else:
+                self.F.value &= 0b10111111
+        elif s == "H":
+            if val:
+                self.F.value |= 0b00100000
+            else:
+                self.F.value &= 0b11011111
+        elif s == "C":
+            if val:
+                self.F.value |= 0b00010000
+            else:
+                self.F.value &= 0b11101111
+        else:
+            raise NotImplementedError
+
     def __repr__(self) -> str:
         s = "\n".join([f"{k} {v}" for k, v in self.registers.items()])
         return s
