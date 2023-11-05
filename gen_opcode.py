@@ -16,8 +16,7 @@ CPU_REGISTORS = {"A",
                  "PC"}
 COMBINED_REGISTORS = {"BC", "DE", "HL"}
 ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
-
-FLAG_Z = 0b10000000
+FLAGS = {"Z", "N", "H", "C"}
 
 
 def get_value_str(source: str):
@@ -30,7 +29,7 @@ def get_value_str(source: str):
         s += f"v += memory.get(addr + 1) << 8{NEXT_LINE_INDENT}"
         s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
         return s
-    elif source == "d8":
+    elif source == "d8" or source == "r8":
         s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
         s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
         s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
@@ -148,6 +147,25 @@ class InstructionParser:
                 s += f'cpu.set_flag("N", False){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("H", True)'
                 return s
+        elif self.command[:3] == "JR ":
+            if "," in self.command[3:]:
+                condition, destination = self.command[3:].split(",")
+                if condition in FLAGS:
+                    pass
+                elif len(condition) == 2 and condition[0] == "N" and condition[1] in FLAGS:
+                    if destination == "r8":
+                        s = get_value_str(destination)
+                        s += f'if not cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+                        s += "cpu.PC.value += ((v ^ 0x80) - 0x80)"
+                        return s
+            #         pass
+            # if cpu.get_flag:
+            #     cpu.PC += ((v ^ 0x80) - 0x80)
+            #     cpu.PC &= 0xFFFF
+            #     return 12
+            # else:
+            #     cpu.PC &= 0xFFFF
+            #     return 8
             # return s
             # return f"r pass # LD {destination} {source}"
         return "raise NotImplementedError"

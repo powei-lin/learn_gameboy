@@ -1,12 +1,17 @@
 from dataclasses import dataclass
 from memory import Memory
 
-# INSTRUCTIONS = {
-#     0x21: ("LD", "HL", "d16"),
-#     0x31: ("LD", "SP", "d16"),
-#     0x32: ("LD", "(HL-)", "A"),
-#     0xaf: ("XOR", "A", None),
-# }
+
+FLAG_Z = 0b10000000
+FLAG_N = 0b01000000
+FLAG_H = 0b00100000
+FLAG_C = 0b00010000
+FLAGS = {
+    "Z": FLAG_Z,
+    "N": FLAG_N,
+    "H": FLAG_H,
+    "C": FLAG_C,
+}
 
 
 @dataclass
@@ -78,29 +83,16 @@ class CPU:
             return (ra.value << 8) + rb.value
         raise NotImplementedError
 
-    def set_flag(self, s: str, val: bool):
-        if s == "Z":
-            if val:
-                self.F.value |= 0b10000000
-            else:
-                self.F.value &= 0b01111111
-        elif s == "N":
-            if val:
-                self.F.value |= 0b01000000
-            else:
-                self.F.value &= 0b10111111
-        elif s == "H":
-            if val:
-                self.F.value |= 0b00100000
-            else:
-                self.F.value &= 0b11011111
-        elif s == "C":
-            if val:
-                self.F.value |= 0b00010000
-            else:
-                self.F.value &= 0b11101111
+    def set_flag(self, s: str, status: bool):
+        flag_val = FLAGS[s]
+        if status:
+            self.F.value |= flag_val
         else:
-            raise NotImplementedError
+            self.F.value &= (~flag_val & 0xff)
+
+    def get_flag(self, s: str) -> bool:
+        flag_val = FLAGS[s]
+        return (self.F.value & flag_val) > 0
 
     def __repr__(self) -> str:
         s = "\n".join([f"{k} {v}" for k, v in self.registers.items()])
