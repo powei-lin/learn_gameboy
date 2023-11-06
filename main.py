@@ -1,6 +1,6 @@
 from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
-# import tkinter as tk
-# window = tk.Tk()
+import cv2
+import numpy as np
 
 
 def fetch(cpu: CPU, memory: Memory) -> int:
@@ -23,12 +23,21 @@ if __name__ == '__main__':
     with open("DMG_ROM.bin", 'rb') as boot_rom:
         rom = boot_rom.read()
     cpu = CPU()
-    mem = Memory(rom)
-    for i in range(30000):
-        print(f"\n{i}---------------")
-        print("CPU:")
-        print(cpu)
-        print("********")
-        tick(cpu, mem)
+    mem = Memory(rom, randomize=True)
+
+    # arr = np.array(mem.ram, dtype=np.uint8).reshape(256, -1)
+    # cv2.imshow("ram", arr)
+    # cv2.waitKey(0)
+    try:
+        for i in range(30000):
+            print(f"\n{i}---------------")
+            print("CPU:")
+            print(cpu)
+            print("********")
+            tick(cpu, mem)
+    except NotImplementedError:
+        arr = np.array(mem.ram, dtype=np.uint8).reshape(256, -1)
+        cv2.imshow("ram", arr)
+        cv2.waitKey(0)
         print()
         # input()
