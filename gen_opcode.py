@@ -142,7 +142,7 @@ class InstructionParser:
             num, operand = self.command[4:].split(",")
             # s += f"pass # BIT {num} {operand}"
             if operand in ALL_REGISTORS:
-                s = f'v = cpu.get_value("{operand}") & (1 << {num}){NEXT_LINE_INDENT}'
+                s += f'v = cpu.get_value("{operand}") & (1 << {num}){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("N", False){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("H", True)'
@@ -154,21 +154,14 @@ class InstructionParser:
                     pass
                 elif len(condition) == 2 and condition[0] == "N" and condition[1] in FLAGS:
                     if destination == "r8":
-                        s = get_value_str(destination)
+                        s += get_value_str(destination)
                         s += f'if not cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
                         s += "cpu.PC.value += ((v ^ 0x80) - 0x80)"
                         return s
-            #         pass
-            # if cpu.get_flag:
-            #     cpu.PC += ((v ^ 0x80) - 0x80)
-            #     cpu.PC &= 0xFFFF
-            #     return 12
-            # else:
-            #     cpu.PC &= 0xFFFF
-            #     return 8
-            # return s
-            # return f"r pass # LD {destination} {source}"
-        return "raise NotImplementedError"
+        elif self.command[:4] == "INC ":
+            # return s + "INC"
+            pass
+        return s + "raise NotImplementedError"
 
 
 def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
