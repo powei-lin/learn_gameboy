@@ -191,6 +191,7 @@ class InstructionParser:
                         s += f'if not cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
                         s += "cpu.PC.value += ((v ^ 0x80) - 0x80)"
                         implemented = True
+
         elif self.command[:4] == "INC ":
             operand = self.command[4:]
             s += get_value_str(operand)
@@ -200,11 +201,27 @@ class InstructionParser:
             if has_flags:
                 s += add_simple_flags(self.flags)
                 has_flags = False
-            # s += "INC"
+
+        elif self.command[:4] == "LDH ":
+            operand0, operand1 = self.command[4:].split(",")
+            if operand0 == '(a8)' and operand1 == "A":
+                s += get_value_str("A")
+                s += f'addr = cpu.PC.value + 0xff00{NEXT_LINE_INDENT}'
+                s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+                s += f"memory.set(addr, v)"
+                implemented = True
+            elif operand0 == "A" and operand1 == '(a8)':
+                s += f'addr = cpu.PC.value + 0xff00{NEXT_LINE_INDENT}'
+                s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
+                s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+                s += set_value_str("A")
+                implemented = True
+            else:
+                s += f"LDH {operand0} {operand1}"
 
         if has_flags and implemented:
             s += f"# TODO implement flags"
-            # s +=
+
         if not implemented:
             s += "raise NotImplementedError"
         return s
