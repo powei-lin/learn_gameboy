@@ -1,5 +1,5 @@
 from string import printable
-from typing import Dict
+from typing import Dict, Tuple
 from dataclasses import dataclass
 
 SPACE_4 = '    '
@@ -16,7 +16,7 @@ CPU_REGISTORS = {"A",
                  "PC"}
 COMBINED_REGISTORS = {"BC", "DE", "HL"}
 ALL_REGISTORS = CPU_REGISTORS.union(COMBINED_REGISTORS)
-FLAGS = {"Z", "N", "H", "C"}
+FLAGS = ["Z", "N", "H", "C"]
 
 
 def get_value_str(source: str):
@@ -98,9 +98,42 @@ def set_value_str(destination: str):
     return "err raise NotImplementedError"
 
 
-def parse_LD(s: str, command: str, flags: str) -> str:
+def parse_LD(command: str) -> str:
     destination, source = command[3:].split(",")
     return get_value_str(source) + set_value_str(destination)
+
+
+def parse_XOR(command: str) -> str:
+    s = ""
+    operand = command[4:]
+    if operand in ALL_REGISTORS:
+        s += f'v = cpu.A.value ^ cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
+    elif operand[0] == "(" and operand[-1] == ")" and operand[1:-1] in ALL_REGISTORS:
+        s += f'v = cpu.A.value ^ memory.get("{operand[1:-1]}"){NEXT_LINE_INDENT}'
+    else:
+        return "raise NotImplementedError"
+    s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
+    s += 'cpu.set_value("A", v)'
+    return s
+
+
+def add_simple_flags(flags: str) -> str:
+    s = ""
+    for i, j in zip(flags.split(" "), FLAGS):
+        if i == "0":
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("{j}", False)'
+        elif i == "1":
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("{j}", True)'
+        elif i == "Z":
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("Z", v == 0)'
+        elif i == "N":
+            s += f'{NEXT_LINE_INDENT}raise NotImplementedError'
+        elif i == "H":
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("H", (v & 0xF) == 0)'
+        elif i == "C":
+            s += f'{NEXT_LINE_INDENT}raise NotImplementedError'
+
+    return s
 
 
 @dataclass
@@ -123,30 +156,30 @@ class InstructionParser:
 
     def impl(self) -> str:
         s = ""
+        has_flags, implemented = False, False
+
         if self.flags != "- - - -":
-            s += f"# Has flag{NEXT_LINE_INDENT}"
+            has_flags = True
+        else:
+            s += f"# No flag{NEXT_LINE_INDENT}"
+
         if self.command[:3] == "LD ":
-            return parse_LD(s, self.command, self.flags)
+            s += parse_LD(self.command)
+            implemented = True
+
         elif self.command[:4] == "XOR ":
-            operand = self.command[4:]
-            if operand in ALL_REGISTORS:
-                s += f'v = cpu.A.value ^ cpu.get_value("{operand}"){NEXT_LINE_INDENT}'
-            elif operand[0] == "(" and operand[-1] == ")" and operand[1:-1] in ALL_REGISTORS:
-                s += f'v = cpu.A.value ^ memory.get("{operand[1:-1]}"){NEXT_LINE_INDENT}'
-            else:
-                return "raise NotImplementedError"
-            s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
-            s += 'cpu.set_value("A", v)'
-            return s
+            s += parse_XOR(self.command)
+            implemented = True
+
         elif self.command[:4] == "BIT ":
             num, operand = self.command[4:].split(",")
-            # s += f"pass # BIT {num} {operand}"
             if operand in ALL_REGISTORS:
                 s += f'v = cpu.get_value("{operand}") & (1 << {num}){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("N", False){NEXT_LINE_INDENT}'
                 s += f'cpu.set_flag("H", True)'
-                return s
+                implemented = True
+
         elif self.command[:3] == "JR ":
             if "," in self.command[3:]:
                 condition, destination = self.command[3:].split(",")
@@ -157,11 +190,24 @@ class InstructionParser:
                         s += get_value_str(destination)
                         s += f'if not cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
                         s += "cpu.PC.value += ((v ^ 0x80) - 0x80)"
-                        return s
+                        implemented = True
         elif self.command[:4] == "INC ":
-            # return s + "INC"
-            pass
-        return s + "raise NotImplementedError"
+            operand = self.command[4:]
+            s += get_value_str(operand)
+            s += f"v += 1{NEXT_LINE_INDENT}"
+            s += set_value_str(operand)
+            implemented = True
+            if has_flags:
+                s += add_simple_flags(self.flags)
+                has_flags = False
+            # s += "INC"
+
+        if has_flags and implemented:
+            s += f"# TODO implement flags"
+            # s +=
+        if not implemented:
+            s += "raise NotImplementedError"
+        return s
 
 
 def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
