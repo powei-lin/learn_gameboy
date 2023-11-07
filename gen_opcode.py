@@ -4,14 +4,10 @@ from dataclasses import dataclass
 
 SPACE_4 = '    '
 NEXT_LINE_INDENT = '\n' + SPACE_4
-CPU_REGISTORS = {"A",
-                 "F",
-                 "B",
-                 "C",
-                 "D",
-                 "E",
-                 "H",
-                 "L",
+CPU_REGISTORS = {"A", "F",
+                 "B", "C",
+                 "D", "E",
+                 "H", "L",
                  "SP",
                  "PC"}
 COMBINED_REGISTORS = {"BC", "DE", "HL"}
