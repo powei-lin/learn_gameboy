@@ -118,6 +118,17 @@ def set_value_str(destination: str):
 
 def parse_LD(command: str) -> str:
     destination, source = command[3:].split(",")
+    # Two special
+    if destination == "(C)" and source == "A":
+        s = get_value_str(source)
+        s += f'addr = cpu.get_value("C") + 0xff00{NEXT_LINE_INDENT}'
+        s += f"memory.set(addr, v)"
+        return s
+    elif destination == "A" and source == "(C)":
+        s = f'addr = {cpu_get_value_str("C")} + 0xff00{NEXT_LINE_INDENT}'
+        s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
+        s += set_value_str("A")
+        return s
     return get_value_str(source) + set_value_str(destination)
 
 
@@ -130,13 +141,12 @@ def parse_XOR(command: str) -> str:
         s += f'v = cpu.A.value ^ memory.get("{operand[1:-1]}"){NEXT_LINE_INDENT}'
     else:
         return "raise NotImplementedError"
-    s += f'cpu.set_flag("Z", v == 0){NEXT_LINE_INDENT}'
     s += 'cpu.set_value("A", v)'
     return s
 
 
 def add_flags(flags: str) -> str:
-    s = ""
+    s = f"{NEXT_LINE_INDENT}# set flag"
     for i, j in zip(flags.split(" "), FLAGS):
         if i == "0":
             s += f'{NEXT_LINE_INDENT}cpu.set_flag("{j}", False)'
@@ -197,6 +207,17 @@ def parse_LDH(command: str) -> str:
     return s
 
 
+def parse_CALL(command: str) -> str:
+    # cpu.PC += 3
+    # cpu.PC &= 0xFFFF
+    # cpu.mb.setitem((cpu.SP-1) & 0xFFFF, cpu.PC >> 8) # High
+    # cpu.mb.setitem((cpu.SP-2) & 0xFFFF, cpu.PC & 0xFF) # Low
+    # cpu.SP -= 2
+    # cpu.SP &= 0xFFFF
+    # cpu.PC = v
+    return NOT_IMPLEMENTED_ERROR_STR
+
+
 def parse_command(command) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -216,6 +237,9 @@ def parse_command(command) -> Tuple[bool, str]:
     elif command[:4] == "LDH ":
         return True, parse_LDH(command)
 
+    elif command[:5] == "CALL ":
+        return True, parse_CALL(command)
+
     return False, ""
 
 
@@ -228,7 +252,7 @@ class InstructionParser:
     flags: str = None
 
     def __repr__(self) -> str:
-        return (f"def {self.name()}(cpu: CPU, memory: Memory):{NEXT_LINE_INDENT}"
+        return (f"def {self.name()}(cpu: CPU, memory: Memory) -> int:{NEXT_LINE_INDENT}"
                 f"# {self.command}{NEXT_LINE_INDENT}"
                 f"# {self.length_duration}{NEXT_LINE_INDENT}"
                 f"# {self.flags}{NEXT_LINE_INDENT}"
@@ -241,14 +265,17 @@ class InstructionParser:
 
         implemented, s = parse_command(self.command)
 
-        has_flags = False
-        if self.flags != "- - - -":
-            has_flags = True
-        else:
-            s = f"# No flag{NEXT_LINE_INDENT}" + s
+        if implemented and not s.endswith(NOT_IMPLEMENTED_ERROR_STR):
+            if self.flags == "- - - -":
+                s = f"# No flag{NEXT_LINE_INDENT}" + s
+            else:
+                s += add_flags(self.flags)
 
-        if implemented and has_flags:
-            s += add_flags(self.flags)
+            if '/' in self.length_duration:
+                default_cycle = int(self.length_duration.split('/')[-1])
+            else:
+                default_cycle = int(self.length_duration.split(' ')[-1])
+            s += f"{NEXT_LINE_INDENT}return {default_cycle}"
 
         if not implemented:
             s += "raise NotImplementedError"
