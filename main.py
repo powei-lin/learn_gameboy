@@ -1,6 +1,7 @@
 from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 import cv2
 import numpy as np
+from debug import debug_ram
 
 
 def fetch(cpu: CPU, memory: Memory) -> int:
@@ -36,8 +37,8 @@ if __name__ == '__main__':
             print("********")
             tick(cpu, mem)
     except NotImplementedError:
-        arr = np.array(mem.ram, dtype=np.uint8).reshape(256, -1)
-        cv2.imshow("ram", arr)
+        ram_debug_img = debug_ram(mem.ram)
+        cv2.imshow("ram", ram_debug_img)
         cv2.waitKey(0)
         print()
         # input()
