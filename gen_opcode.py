@@ -234,14 +234,15 @@ def parse_CALL(command: str, cycle: str) -> str:
     s += 'cpu.PC.value = v'
 
     return s
-    # cpu.PC += 3
-    # cpu.PC &= 0xFFFF
-    # cpu.mb.setitem((cpu.SP-1) & 0xFFFF, cpu.PC >> 8) # High
-    # cpu.mb.setitem((cpu.SP-2) & 0xFFFF, cpu.PC & 0xFF) # Low
-    # cpu.SP -= 2
-    # cpu.SP &= 0xFFFF
-    # cpu.PC = v
-    return NOT_IMPLEMENTED_ERROR_STR
+
+
+def parse_PUSH(command: str) -> str:
+    operand = command[5:]
+    s = f'cpu.SP.value -= 1{NEXT_LINE_INDENT}'
+    s += f'memory.set(cpu.SP.value, {cpu_get_value_str(operand[0])}){NEXT_LINE_INDENT}'
+    s += f'cpu.SP.value -= 1{NEXT_LINE_INDENT}'
+    s += f'memory.set(cpu.SP.value, {cpu_get_value_str(operand[1])})'
+    return s
 
 
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
@@ -265,6 +266,8 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:5] == "CALL ":
         return True, parse_CALL(command, skip_cycle)
+    elif command[:5] == "PUSH ":
+        return True, parse_PUSH(command)
 
     return False, ""
 
