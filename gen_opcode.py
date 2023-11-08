@@ -1,5 +1,5 @@
 from string import printable
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from dataclasses import dataclass
 
 SPACE_4 = '    '
@@ -129,7 +129,11 @@ def parse_LD(command: str) -> str:
         s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
         s += set_value_str("A")
         return s
-    return get_value_str(source) + set_value_str(destination)
+    else:
+        s = get_value_str(source)
+        if not s.endswith(NOT_IMPLEMENTED_ERROR_STR + NEXT_LINE_INDENT):
+            return s + set_value_str(destination)
+        return NOT_IMPLEMENTED_ERROR_STR
 
 
 def parse_XOR(command: str) -> str:
@@ -207,7 +211,29 @@ def parse_LDH(command: str) -> str:
     return s
 
 
-def parse_CALL(command: str) -> str:
+def parse_CALL(command: str, cycle: str) -> str:
+    # TODO make sure this part is right
+    s = f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+    s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
+    s += f'v += {memory_get_str("addr + 1")} << 8{NEXT_LINE_INDENT}'
+    s += f'cpu.PC.value += 2{NEXT_LINE_INDENT}'
+
+    content = command[5:]
+    if "," in content:
+        condition, destination = content.split(",")
+        if condition[0] == "N":
+            s += f'if cpu.get_flag("{condition[-1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+        else:
+            s += f'if not cpu.get_flag("{condition[-1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f"return {cycle}{NEXT_LINE_INDENT}"
+
+    s += f'cpu.SP.value -= 1{NEXT_LINE_INDENT}'
+    s += f'memory.set(cpu.SP.value, cpu.PC.value >> 8){NEXT_LINE_INDENT}'
+    s += f'cpu.SP.value -= 1{NEXT_LINE_INDENT}'
+    s += f'memory.set(cpu.SP.value, cpu.PC.value & 0xff){NEXT_LINE_INDENT}'
+    s += 'cpu.PC.value = v'
+
+    return s
     # cpu.PC += 3
     # cpu.PC &= 0xFFFF
     # cpu.mb.setitem((cpu.SP-1) & 0xFFFF, cpu.PC >> 8) # High
@@ -218,7 +244,7 @@ def parse_CALL(command: str) -> str:
     return NOT_IMPLEMENTED_ERROR_STR
 
 
-def parse_command(command) -> Tuple[bool, str]:
+def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
 
@@ -238,7 +264,7 @@ def parse_command(command) -> Tuple[bool, str]:
         return True, parse_LDH(command)
 
     elif command[:5] == "CALL ":
-        return True, parse_CALL(command)
+        return True, parse_CALL(command, skip_cycle)
 
     return False, ""
 
@@ -263,7 +289,12 @@ class InstructionParser:
 
     def impl(self) -> str:
 
-        implemented, s = parse_command(self.command)
+        skip_cycle = 0
+        if '/' in self.length_duration:
+            default_cycle, skip_cycle = self.length_duration.split(" ")[-1].split("/")
+        else:
+            default_cycle = int(self.length_duration.split(' ')[-1])
+        implemented, s = parse_command(self.command, skip_cycle)
 
         if implemented and not s.endswith(NOT_IMPLEMENTED_ERROR_STR):
             if self.flags == "- - - -":
@@ -271,10 +302,6 @@ class InstructionParser:
             else:
                 s += add_flags(self.flags)
 
-            if '/' in self.length_duration:
-                default_cycle = int(self.length_duration.split('/')[-1])
-            else:
-                default_cycle = int(self.length_duration.split(' ')[-1])
             s += f"{NEXT_LINE_INDENT}return {default_cycle}"
 
         if not implemented:
@@ -316,7 +343,7 @@ if __name__ == '__main__':
     for current_file, prefix, table_shift in file_prefix:
         with open(current_file) as ifile:
             count = 0
-            current_ins = []
+            current_ins: List[InstructionParser] = []
             for line in ifile.readlines()[1:]:
                 new_string = ''.join(char for char in line[:-1] if char in printable)
                 items = new_string.split('\t')
