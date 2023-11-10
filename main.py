@@ -30,15 +30,18 @@ if __name__ == '__main__':
     # cv2.imshow("ram", arr)
     # cv2.waitKey(0)
     try:
-        for i in range(30000):
-            print(f"\n{i}---------------")
+        count = 0
+        while True:
+            print(f"\n{count}---------------")
             print("CPU:")
             print(cpu)
             print("********")
             tick(cpu, mem)
+            count += 1
     except NotImplementedError:
         ram_debug_img = debug_ram(mem.ram)
         cv2.imshow("ram", ram_debug_img)
+        cv2.imwrite("ram.png", ram_debug_img)
         cv2.waitKey(0)
         print()
         # input()

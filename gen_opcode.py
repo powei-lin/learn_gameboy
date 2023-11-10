@@ -163,7 +163,7 @@ def add_flags(flags: str) -> str:
         elif i == "H":
             s += f'{NEXT_LINE_INDENT}cpu.set_flag("H", (v & 0xF) == 0)'
         elif i == "C":
-            s += f'{NEXT_LINE_INDENT}{NOT_IMPLEMENTED_ERROR_STR}'
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("C", c > 0xff)'
     return s
 
 
@@ -245,6 +245,30 @@ def parse_PUSH(command: str) -> str:
     return s
 
 
+def parse_RL(command: str) -> str:
+    # rotate left
+    operand = command[3:]
+    if operand in CPU_REGISTORS:
+        s = f"c = ({cpu_get_value_str(operand)} << 1){NEXT_LINE_INDENT}"
+        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f'c += 1{NEXT_LINE_INDENT}'
+        s += f'v = c & 0xff{NEXT_LINE_INDENT}'
+        s += f'{cpu_set_value_str(operand)}{NEXT_LINE_INDENT}'
+        s += 'cpu.PC.value += 1'
+        return s
+    else:  # (HL)
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f"c = ({memory_get_str()} << 1){NEXT_LINE_INDENT}"
+        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f'c += 1{NEXT_LINE_INDENT}'
+        s += f'v = c & 0xff{NEXT_LINE_INDENT}'
+        s += f'{memory_set_str()}{NEXT_LINE_INDENT}'
+        s += 'cpu.PC.value += 1'
+        return s
+
+    return f"{operand} " + NOT_IMPLEMENTED_ERROR_STR
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -266,8 +290,12 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:5] == "CALL ":
         return True, parse_CALL(command, skip_cycle)
+
     elif command[:5] == "PUSH ":
         return True, parse_PUSH(command)
+
+    elif command[:3] == "RL ":
+        return True, parse_RL(command)
 
     return False, ""
 
