@@ -163,7 +163,7 @@ def add_flags(flags: str) -> str:
         elif i == "N":
             s += f'{NEXT_LINE_INDENT}{NOT_IMPLEMENTED_ERROR_STR}'
         elif i == "H":
-            s += f'{NEXT_LINE_INDENT}cpu.set_flag("H", (v & 0xF) == 0)'
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("H", h)'
         elif i == "C":
             s += f'{NEXT_LINE_INDENT}cpu.set_flag("C", c > 0xff)'
     return s
@@ -194,7 +194,8 @@ def parse_INC(command: str) -> str:
     operand = command[4:]
     s = get_value_str(operand)
     s += f"v += 1{NEXT_LINE_INDENT}"
-    s += set_value_str(operand)
+    s += f'{set_value_str(operand)}{NEXT_LINE_INDENT}'
+    s += f"h = ((v & 0xF) == 0)"
     return s
 
 
@@ -281,14 +282,25 @@ def parse_POP(command: str) -> str:
     else:
         s += f'{cpu_set_value_str(operand1, memory_get_str("addr1"))}{NEXT_LINE_INDENT}'
     s += f'cpu.SP.value += 2'
-    # cpu.B = cpu.mb.getitem((cpu.SP + 1) & 0xFFFF) # High
-    # cpu.C = cpu.mb.getitem(cpu.SP) # Low
-    # cpu.SP += 2
-    # cpu.SP &= 0xFFFF
-    # cpu.PC += 1
-    # cpu.PC &= 0xFFFF
     return s
-    return "POP " + NOT_IMPLEMENTED_ERROR_STR
+
+
+def parse_DEC(command: str) -> str:
+    operand = command[4:]
+    s = ""
+    if operand in ALL_REGISTORS:
+        s += f'v = {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}'
+        s += f"h = ((v & 0xF) == 0){NEXT_LINE_INDENT}"
+        s += f"v -= 1{NEXT_LINE_INDENT}"
+        s += f'{cpu_set_value_str(operand)}'
+        return s
+    else:  # DEC (HL)
+        s += f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f'v = {memory_get_str()}{NEXT_LINE_INDENT}'
+        s += f"h = ((v & 0xF) == 0){NEXT_LINE_INDENT}"
+        s += f"v -= 1{NEXT_LINE_INDENT}"
+        s += f'{memory_set_str()}'
+        return s
 
 
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
@@ -321,6 +333,9 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:4] == "POP ":
         return True, parse_POP(command)
+
+    elif command[:4] == "DEC ":
+        return True, parse_DEC(command)
 
     return False, ""
 
