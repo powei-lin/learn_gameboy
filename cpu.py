@@ -64,6 +64,7 @@ class CPU:
             "DE": (self.D, self.E),
             "HL": (self.H, self.L),
         }
+        self.interrupt_master_enable = False
 
     def set_value(self, reg_name: str, val: int):
         if reg_name in self.registers:

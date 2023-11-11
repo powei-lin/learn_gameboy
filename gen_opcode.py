@@ -322,7 +322,10 @@ def parse_RET(command: str, skip_cycle: int) -> str:
             s = f'if not cpu.get_flag("{condition[-1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
             s += f"return {skip_cycle}{NEXT_LINE_INDENT}"
         return s + ret_str
-    return NOT_IMPLEMENTED_ERROR_STR  # RETI
+    elif command == "RETI":
+        s = f"cpu.interrupt_master_enable = True{NEXT_LINE_INDENT}"
+        return s + ret_str
+    return NOT_IMPLEMENTED_ERROR_STR
 
 
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
