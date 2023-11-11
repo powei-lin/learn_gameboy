@@ -150,6 +150,8 @@ def parse_XOR(command: str) -> str:
 
 
 def add_flags(flags: str) -> str:
+    if flags == "Z N H C":
+        return ""  # POP AF
     s = f"{NEXT_LINE_INDENT}# set flag"
     for i, j in zip(flags.split(" "), FLAGS):
         if i == "0":
@@ -266,7 +268,27 @@ def parse_RL(command: str) -> str:
         s += 'cpu.PC.value += 1'
         return s
 
-    return f"{operand} " + NOT_IMPLEMENTED_ERROR_STR
+
+def parse_POP(command: str) -> str:
+    s = f'addr0 = ({cpu_get_value_str("SP")} + 1) & 0xffff{NEXT_LINE_INDENT}'
+    s += f'addr1 = {cpu_get_value_str("SP")}{NEXT_LINE_INDENT}'
+    operand0 = command[4]
+    operand1 = command[5]
+    s += f''
+    s += f'{cpu_set_value_str(operand0, memory_get_str("addr0"))}{NEXT_LINE_INDENT}'
+    if operand1 == "F":
+        s += f'{cpu_set_value_str(operand1, memory_get_str("addr1") + " & 0xf0")}{NEXT_LINE_INDENT}'
+    else:
+        s += f'{cpu_set_value_str(operand1, memory_get_str("addr1"))}{NEXT_LINE_INDENT}'
+    s += f'cpu.SP.value += 2'
+    # cpu.B = cpu.mb.getitem((cpu.SP + 1) & 0xFFFF) # High
+    # cpu.C = cpu.mb.getitem(cpu.SP) # Low
+    # cpu.SP += 2
+    # cpu.SP &= 0xFFFF
+    # cpu.PC += 1
+    # cpu.PC &= 0xFFFF
+    return s
+    return "POP " + NOT_IMPLEMENTED_ERROR_STR
 
 
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
@@ -296,6 +318,9 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:3] == "RL ":
         return True, parse_RL(command)
+
+    elif command[:4] == "POP ":
+        return True, parse_POP(command)
 
     return False, ""
 
