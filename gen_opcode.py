@@ -303,6 +303,28 @@ def parse_DEC(command: str) -> str:
         return s
 
 
+def parse_RET(command: str, skip_cycle: int) -> str:
+    ret_str = ""
+    ret_str += f'v = {memory_get_str(cpu_get_value_str("SP"))}{NEXT_LINE_INDENT}'
+    ret_str += f'cpu.SP.value += 1{NEXT_LINE_INDENT}'
+    ret_str += f'v += ({memory_get_str(cpu_get_value_str("SP"))} << 8){NEXT_LINE_INDENT}'
+    ret_str += f'cpu.SP.value += 1{NEXT_LINE_INDENT}'
+    ret_str += f'cpu.PC.value = v'
+    if len(command) == 3:  # RET
+        return ret_str
+    elif command[3] == ' ':
+        condition = command[4:]
+        if condition[0] == "N":
+            s = f'if cpu.get_flag("{condition[-1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+            s += f"return {skip_cycle}{NEXT_LINE_INDENT}"
+            return s + ret_str
+        else:
+            s = f'if not cpu.get_flag("{condition[-1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+            s += f"return {skip_cycle}{NEXT_LINE_INDENT}"
+        return s + ret_str
+    return NOT_IMPLEMENTED_ERROR_STR  # RETI
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -336,6 +358,10 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:4] == "DEC ":
         return True, parse_DEC(command)
+
+    elif command[:3] == "RET":
+        # RET and RET * and RETI
+        return True, parse_RET(command, skip_cycle)
 
     return False, ""
 
