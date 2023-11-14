@@ -176,7 +176,7 @@ def parse_BIT(command: str) -> str:
     return NOT_IMPLEMENTED_ERROR_STR
 
 
-def parse_JR(command: str) -> str:
+def parse_JR(command: str, cycle: int) -> str:
     if "," in command[3:]:
         condition, destination = command[3:].split(",")
         if condition in FLAGS:
@@ -184,8 +184,9 @@ def parse_JR(command: str) -> str:
         elif len(condition) == 2 and condition[0] == "N" and condition[1] in FLAGS:
             if destination == "r8":
                 s = get_value_str(destination)
-                s += f'if not cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
-                s += "cpu.PC.value += ((v ^ 0x80) - 0x80)"
+                s += f'if cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+                s += f"return {cycle}{NEXT_LINE_INDENT}"
+                s += f"cpu.PC.value += ((v ^ 0x80) - 0x80)"
                 return s
     return NOT_IMPLEMENTED_ERROR_STR
 
@@ -357,7 +358,7 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
         return True, parse_BIT(command)
 
     elif command[:3] == "JR ":
-        return True, parse_JR(command)
+        return True, parse_JR(command, skip_cycle)
 
     elif command[:4] == "INC ":
         return True, parse_INC(command)
