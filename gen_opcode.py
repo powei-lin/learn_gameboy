@@ -180,7 +180,12 @@ def parse_JR(command: str, cycle: int) -> str:
     if "," in command[3:]:
         condition, destination = command[3:].split(",")
         if condition in FLAGS:
-            pass
+            if destination == "r8":
+                s = get_value_str(destination)
+                s += f'if not cpu.get_flag("{condition}"):{NEXT_LINE_INDENT}{SPACE_4}'
+                s += f"return {cycle}{NEXT_LINE_INDENT}"
+                s += f"cpu.PC.value += ((v ^ 0x80) - 0x80)"
+                return s
         elif len(condition) == 2 and condition[0] == "N" and condition[1] in FLAGS:
             if destination == "r8":
                 s = get_value_str(destination)
@@ -188,6 +193,11 @@ def parse_JR(command: str, cycle: int) -> str:
                 s += f"return {cycle}{NEXT_LINE_INDENT}"
                 s += f"cpu.PC.value += ((v ^ 0x80) - 0x80)"
                 return s
+    elif command[3:] == 'r8':
+        s = get_value_str('r8')
+        s += f"cpu.PC.value += ((v ^ 0x80) - 0x80)"
+        return s
+
     return NOT_IMPLEMENTED_ERROR_STR
 
 
