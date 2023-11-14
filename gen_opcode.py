@@ -165,7 +165,7 @@ def add_flags(flags: str) -> str:
         elif i == "H":
             s += f'{NEXT_LINE_INDENT}cpu.set_flag("H", h)'
         elif i == "C":
-            s += f'{NEXT_LINE_INDENT}cpu.set_flag("C", c > 0xff)'
+            s += f'{NEXT_LINE_INDENT}cpu.set_flag("C", c)'
     return s
 
 
@@ -252,19 +252,19 @@ def parse_RL(command: str) -> str:
     # rotate left
     operand = command[3:]
     if operand in CPU_REGISTORS:
-        s = f"c = ({cpu_get_value_str(operand)} << 1){NEXT_LINE_INDENT}"
-        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
-        s += f'c += 1{NEXT_LINE_INDENT}'
-        s += f'v = c & 0xff{NEXT_LINE_INDENT}'
+        s = f"v = ({cpu_get_value_str(operand)} << 1){NEXT_LINE_INDENT}"
+        # s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
+        # s += f'c += 1{NEXT_LINE_INDENT}'
+        s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
+        s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{cpu_set_value_str(operand)}{NEXT_LINE_INDENT}'
         s += 'cpu.PC.value += 1'
         return s
     else:  # (HL)
         s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
-        s += f"c = ({memory_get_str()} << 1){NEXT_LINE_INDENT}"
-        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
-        s += f'c += 1{NEXT_LINE_INDENT}'
-        s += f'v = c & 0xff{NEXT_LINE_INDENT}'
+        s += f"v = ({memory_get_str()} << 1){NEXT_LINE_INDENT}"
+        s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
+        s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{memory_set_str()}{NEXT_LINE_INDENT}'
         s += 'cpu.PC.value += 1'
         return s
@@ -328,6 +328,24 @@ def parse_RET(command: str, skip_cycle: int) -> str:
     return NOT_IMPLEMENTED_ERROR_STR
 
 
+def parse_CP(command: str) -> str:
+    # Compare A to the operand
+    operand = command[3:]
+    if operand == 'd8':
+        s = f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+        s += f't = {memory_get_str()}{NEXT_LINE_INDENT}'
+    elif operand in CPU_REGISTORS:
+        s = f't = {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}'
+    else:  # (HL)
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f't = {memory_get_str()}{NEXT_LINE_INDENT}'
+    s += f'v = cpu.A.value - t{NEXT_LINE_INDENT}'
+    s += f'h = ((cpu.A.value & 0xf) < (t & 0xf)){NEXT_LINE_INDENT}'
+    s += f'c = (v < 0)'
+    return s
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -365,6 +383,9 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     elif command[:3] == "RET":
         # RET and RET * and RETI
         return True, parse_RET(command, skip_cycle)
+
+    elif command[:3] == "CP ":
+        return True, parse_CP(command)
 
     return False, ""
 
