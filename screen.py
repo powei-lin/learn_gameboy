@@ -1,0 +1,13 @@
+CONTROL_ADDR_RW = 0xff40
+STATUS_ADDR_RW = 0xff41
+SCROLL_Y_RW = 0xff42
+SCROLL_X_RW = 0xff43
+Y_COORDINATE_R = 0xff44
+LY_COMPARE_RW = 0xff45
+WINDOW_Y_POSITION_RW = 0xff4a
+WINDOW_X_POSITION_MINUS_7_RW = 0xff4b
+
+
+class LCD:
+    def __init__(self):
+        pass

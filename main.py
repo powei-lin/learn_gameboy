@@ -6,6 +6,9 @@ from debug import debug_ram
 
 def fetch(cpu: CPU, memory: Memory) -> int:
     addr = memory.get(cpu.PC.value)
+    if addr == 0x00fe:
+        print("Lock")
+        raise NotImplementedError
     cpu.PC.value += 1
     return addr
 
@@ -32,7 +35,7 @@ if __name__ == '__main__':
     try:
         count = 0
         while True:
-            print(f"\n{count}---------------")
+            print(f"{count}---------------")
             print("CPU:")
             print(cpu)
             print("********")
