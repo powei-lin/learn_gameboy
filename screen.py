@@ -14,6 +14,8 @@ WINDOW_X_POSITION_MINUS_7_RW = 0xff4b
 LCD_WIDTH = 160
 LCD_HEIGHT = 144
 
+GRAY_SHADES = [255, 170, 85, 0]
+
 
 class LCD:
     def __init__(self):
@@ -47,11 +49,14 @@ class LCD:
 
     def _check_control(self, value: int):
         self.lcd_display_enable = ((value >> 7) & 1)
-        self.lcd_display_enable = ((value >> 7) & 1)
+        # self.lcd_display_enable = ((value >> 7) & 1)
         if self.lcd_display_enable > 0:
             print("LCD")
             exit()
 
     def tick(self, mem: Memory):
         self._check_control(mem.get(CONTROL_ADDR_RW))
-        # if mem.get(0xff47) > 0:
+        v = mem.get(0xff47)
+        # if v > 0:
+        #     print(f"{v:08b}")
+        # exit()

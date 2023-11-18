@@ -7,21 +7,21 @@ from screen import LCD
 
 def fetch(cpu: CPU, memory: Memory) -> int:
     addr = memory.get(cpu.PC.value)
-    if addr == 0x00fe:
+    cpu.PC.value += 1
+    if cpu.PC.value == 0x00fe:
         print("Lock")
         raise NotImplementedError
-    cpu.PC.value += 1
     return addr
 
 
 def tick(cpu: CPU, memory: Memory, lcd: LCD):
-    addr = fetch(cpu, memory)
-    if addr == 0xcb:
-        addr = fetch(cpu, memory)
-        addr += 0x100
-    # print(f"Fetched intruction 0x{addr:03x}")
+    op_addr = fetch(cpu, memory)
+    if op_addr == 0xcb:
+        op_addr = fetch(cpu, memory)
+        op_addr += 0x100
+    print(f"Fetched intruction 0x{op_addr:03x}")
     # execute
-    cycle = INSTRUCTION_TABLE[addr](cpu, memory)
+    cycle = INSTRUCTION_TABLE[op_addr](cpu, memory)
     lcd.tick(memory)
     # print(f"current cycle: {cycle}")
     return cycle
@@ -57,6 +57,11 @@ if __name__ == '__main__':
             count += 1
     except NotImplementedError:
         ram_debug_img = debug_ram(mem.ram)
+        print("end")
+        print(f"{count}---------------")
+        print("CPU:")
+        print(cpu)
+        print("********")
         print(f"total cycle: {count_cycle}")
         cv2.imshow("ram", ram_debug_img)
         cv2.imwrite("ram.png", ram_debug_img)
