@@ -45,5 +45,13 @@ class LCD:
         cv2.imshow("screen", self.screen)
         cv2.waitKey(0)
 
+    def _check_control(self, value: int):
+        self.lcd_display_enable = ((value >> 7) & 1)
+        self.lcd_display_enable = ((value >> 7) & 1)
+        if self.lcd_display_enable > 0:
+            print("LCD")
+            exit()
+
     def tick(self, mem: Memory):
-        pass
+        self._check_control(mem.get(CONTROL_ADDR_RW))
+        # if mem.get(0xff47) > 0:

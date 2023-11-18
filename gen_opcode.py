@@ -214,11 +214,11 @@ def parse_LDH(command: str) -> str:
     operand0, operand1 = command[4:].split(",")
     if operand0 == '(a8)' and operand1 == "A":
         s = get_value_str("A")
-        s += f'addr = cpu.PC.value + 0xff00{NEXT_LINE_INDENT}'
+        s += f'addr = {memory_get_str("cpu.PC.value")} + 0xff00{NEXT_LINE_INDENT}'
         s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
         s += f"memory.set(addr, v)"
     elif operand0 == "A" and operand1 == '(a8)':
-        s = f'addr = cpu.PC.value + 0xff00{NEXT_LINE_INDENT}'
+        s = f'addr = {memory_get_str("cpu.PC.value")} + 0xff00{NEXT_LINE_INDENT}'
         s += f"v = memory.get(addr){NEXT_LINE_INDENT}"
         s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
         s += set_value_str("A")

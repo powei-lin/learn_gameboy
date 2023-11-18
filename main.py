@@ -22,6 +22,7 @@ def tick(cpu: CPU, memory: Memory, lcd: LCD):
     # print(f"Fetched intruction 0x{addr:03x}")
     # execute
     cycle = INSTRUCTION_TABLE[addr](cpu, memory)
+    lcd.tick(memory)
     # print(f"current cycle: {cycle}")
     return cycle
 
@@ -32,9 +33,11 @@ if __name__ == '__main__':
     with open("Tetris.gb", 'rb') as cartridge:
         game_rom = cartridge.read()
     cpu = CPU()
-    mem = Memory(rom, game_rom, randomize=True)
+    mem = Memory(rom, game_rom, randomize=False)
     lcd = LCD()
-    lcd.show()
+    pc_val = set()
+
+    # lcd.show()
 
     # arr = np.array(mem.ram, dtype=np.uint8).reshape(256, -1)
     # cv2.imshow("ram", arr)
@@ -43,10 +46,13 @@ if __name__ == '__main__':
     try:
         count = 0
         while True:
-            # print(f"{count}---------------")
-            # print("CPU:")
-            # print(cpu)
-            # print("********")
+            if cpu.PC.value not in pc_val:
+                pc_val.add(cpu.PC.value)
+                print(f"{count}---------------")
+                print("CPU:")
+                print(cpu)
+                print("********")
+                # print(INSTRUCTION_TABLE[addr])
             count_cycle += tick(cpu, mem, lcd)
             count += 1
     except NotImplementedError:

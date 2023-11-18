@@ -16,6 +16,9 @@ class Memory:
 
     def get(self, addr: int):
         if self.initialized or addr > 0xff:
+            if addr < 0x8000:
+                print(f"get from game rom {addr:04x}")
+                return self.game_rom[addr]
             return self.ram[addr]
         else:
             return self.boot_rom[addr]
