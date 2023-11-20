@@ -13,6 +13,7 @@ WINDOW_X_POSITION_MINUS_7_RW = 0xff4b
 
 LCD_WIDTH = 160
 LCD_HEIGHT = 144
+BG_SIZE = 256
 
 GRAY_SHADES = [255, 170, 85, 0]
 
@@ -20,6 +21,7 @@ GRAY_SHADES = [255, 170, 85, 0]
 class LCD:
     def __init__(self):
         self.screen = np.ones((LCD_HEIGHT, LCD_WIDTH), np.uint8) * 255
+        self.bg_map = np.ones((BG_SIZE, BG_SIZE), np.uint8) * 255
 
         # FF40 (order bit 7 -> 0)
         self.lcd_display_enable = 0              # (0=Off, 1=On)
@@ -43,20 +45,45 @@ class LCD:
         # 2: During Searching OAM-RAM
         # 3: During Transfering Data to LCD Driver
 
+        self.ly = 0
+        self.lyc = 0
+
     def show(self):
         cv2.imshow("screen", self.screen)
+        cv2.imshow("bg", self.bg_map)
         cv2.waitKey(0)
 
     def _check_control(self, value: int):
         self.lcd_display_enable = ((value >> 7) & 1)
-        # self.lcd_display_enable = ((value >> 7) & 1)
-        if self.lcd_display_enable > 0:
-            print("LCD")
-            exit()
+        self.window_tile_map_display_select = ((value >> 6) & 1)
+        self.window_display_enable = ((value >> 5) & 1)
+        self.bg_and_window_tile_data_select = ((value >> 4) & 1)
+        self.bg_tile_map_display_select = ((value >> 3) & 1)
+        self.sprite_size = ((value >> 2) & 1)
+        self.sprite_display_enable = ((value >> 1) & 1)
+        self.bg_display = (value & 1)
 
     def tick(self, mem: Memory):
         self._check_control(mem.get(CONTROL_ADDR_RW))
-        v = mem.get(0xff47)
-        # if v > 0:
-        #     print(f"{v:08b}")
-        # exit()
+        if self.lcd_display_enable > 0:
+            if self.mode_flag == 0:
+                pass
+            elif self.mode_flag == 1:
+                pass
+            elif self.mode_flag == 2:
+                pass
+            elif self.mode_flag == 3:
+                pass
+            else:
+                raise ValueError
+
+            self.ly = mem.get(Y_COORDINATE_R)
+            self.lyc = mem.get(LY_COMPARE_RW)
+            print("ly", self.ly)
+            scy = mem.get(0xff42)
+            scx = mem.get(0xff43)
+            for i in range(0xff40, 0xff4a):
+                v = mem.get(i)
+                print(f"{i:04x}, {v:08b}, {v}")
+            print("LCD turned on")
+            exit()
