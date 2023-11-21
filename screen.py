@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from memory import Memory
+from enum import IntEnum
 
 CONTROL_ADDR_RW = 0xff40
 STATUS_ADDR_RW = 0xff41
@@ -16,6 +17,13 @@ LCD_HEIGHT = 144
 BG_SIZE = 256
 
 GRAY_SHADES = [255, 170, 85, 0]
+
+
+class PPUState(IntEnum):
+    HBLANK = 0
+    VBLANK = 1
+    OAM = 2
+    DRAWING = 3
 
 
 class LCD:
@@ -66,16 +74,22 @@ class LCD:
     def tick(self, mem: Memory):
         self._check_control(mem.get(CONTROL_ADDR_RW))
         if self.lcd_display_enable > 0:
-            if self.mode_flag == 0:
-                pass
-            elif self.mode_flag == 1:
-                pass
-            elif self.mode_flag == 2:
-                pass
-            elif self.mode_flag == 3:
-                pass
-            else:
-                raise ValueError
+
+            while self.ly < 144:
+                if self.mode_flag == 0:
+                    print("HBLANK")
+                    pass
+                elif self.mode_flag == 1:
+                    print("VBLANK")
+                    pass
+                elif self.mode_flag == 2:
+                    print("OAM")
+                    pass
+                elif self.mode_flag == 3:
+                    print("DRAWING")
+                    pass
+                else:
+                    raise ValueError
 
             self.ly = mem.get(Y_COORDINATE_R)
             self.lyc = mem.get(LY_COMPARE_RW)
