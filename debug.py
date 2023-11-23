@@ -26,3 +26,7 @@ def debug_ram(ram: List[int]):
         # cv2.waitKey(0)
         ram_section_img.append(img)
     return np.hstack((ram_img, np.vstack(ram_section_img)))
+
+
+def integer_resize(img: np.ndarray, scale: int):
+    return np.repeat(np.repeat(img, scale, axis=1), scale, axis=0)

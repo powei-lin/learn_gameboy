@@ -3,6 +3,7 @@ import cv2
 from memory import Memory
 from enum import IntEnum
 from typing import List
+from debug import integer_resize
 
 CONTROL_ADDR_RW = 0xff40
 STATUS_ADDR_RW = 0xff41
@@ -26,17 +27,9 @@ def data_to_tile(data: List[int], palette: int = 0):
     i = np.array(data, dtype=np.uint8).reshape(8, 2)
     i = np.unpackbits(i, axis=1)
     i = (i[:, :8] + i[:, 8:] * 2)
-    p = [0b11 & (palette >> j * 2) for j in range(4)]
+    p = [0b11 & (palette >> (j * 2)) for j in range(4)]
     p = [GRAY_SHADES[j] for j in p]
-    i = np.vectorize(p.__getitem__)(i).astype(np.uint8)
-    print(i.dtype)
-
-    print(f"{palette:08b}")
-    print(i)
-    reszie = 10
-    i = np.repeat(np.repeat(i, reszie, axis=1), reszie, axis=0)
-    cv2.imshow("img", i)
-    cv2.waitKey(0)
+    return np.vectorize(p.__getitem__)(i).astype(np.uint8)
 
 
 class PPUState(IntEnum):
@@ -75,6 +68,7 @@ class LCD:
 
         self.ly = 0
         self.lyc = 0
+        self.count_tick = 0
 
     def show(self):
         cv2.imshow("screen", self.screen)
@@ -91,12 +85,55 @@ class LCD:
         self.sprite_display_enable = ((value >> 1) & 1)
         self.bg_display = (value & 1)
 
+    def show_bg_tiles(self, mem: Memory):
+        bg = None
+        tmp = []
+        for i in range(0x8000, 0x9000, 16):
+            print(f"{i:04x}")
+            data = [mem.get(i + j) for j in range(16)]
+            if i == 0x8190:
+                for d in data:
+                    print(f"{d:02x}")
+                print(mem.get(0xff47))
+            img = data_to_tile(data, mem.get(0xff47))
+            img = integer_resize(img, 10)
+            tmp.append(img)
+            if len(tmp) == 32:
+                combined = np.hstack(tmp)
+                if bg is not None:
+                    bg = np.vstack((bg, combined))
+                else:
+                    bg = combined
+                tmp = []
+        cv2.imshow("bg", bg)
+        cv2.waitKey(0)
+
     def tick(self, mem: Memory):
         self._check_control(mem.get(CONTROL_ADDR_RW))
         if self.lcd_display_enable > 0:
-            for i in range(0x8000, 0x9000, 16):
-                print(f"{i:04x}")
-                data_to_tile([mem.get(i + j) for j in range(16)], mem.get(0xff47))
+            self.show_bg_tiles(mem)
+
+            bg = None
+            tmp = []
+            for i in range(0x9800, 0x9c00):
+                tile_idx = mem.get(i) * 16 + 0x8000
+                img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
+                img = integer_resize(img, 10)
+                img[0, :] = 0
+                img[-1, :] = 0
+                img[:, 0] = 0
+                img[:, -1] = 0
+                tmp.append(img)
+                if len(tmp) == 32:
+                    combined = np.hstack(tmp)
+                    if bg is not None:
+                        bg = np.vstack((bg, combined))
+                    else:
+                        bg = combined
+                    tmp = []
+            cv2.imshow("bg", bg)
+            cv2.waitKey(0)
+            exit()
 
             while self.ly < 144:
                 if self.mode_flag == 0:

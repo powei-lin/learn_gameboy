@@ -31,7 +31,12 @@ if __name__ == '__main__':
     with open("DMG_ROM.bin", 'rb') as boot_rom:
         rom = boot_rom.read()
     with open("Tetris.gb", 'rb') as cartridge:
+        # with open("cartridge.gb", 'rb') as cartridge:
         game_rom = cartridge.read()
+    for i in range(0x0104, 0x0104 + 48):
+        print(f"{i:04x} {game_rom[i]:02x}")
+    exit()
+    # game_rom = None
     cpu = CPU()
     mem = Memory(rom, game_rom, randomize=False)
     lcd = LCD()
