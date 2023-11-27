@@ -264,12 +264,9 @@ def parse_RL(command: str) -> str:
     operand = command[3:]
     if operand in CPU_REGISTORS:
         s = f"v = ({cpu_get_value_str(operand)} << 1){NEXT_LINE_INDENT}"
-        # s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
-        # s += f'c += 1{NEXT_LINE_INDENT}'
         s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
         s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{cpu_set_value_str(operand)}{NEXT_LINE_INDENT}'
-        s += 'cpu.PC.value += 1'
         return s
     else:  # (HL)
         s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
@@ -277,7 +274,6 @@ def parse_RL(command: str) -> str:
         s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
         s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{memory_set_str()}{NEXT_LINE_INDENT}'
-        s += 'cpu.PC.value += 1'
         return s
 
 
