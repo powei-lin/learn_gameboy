@@ -60,6 +60,7 @@ class CPU:
             "PC": self.PC,
         }
         self.combined_registers = {
+            "AF": (self.A, self.F),
             "BC": (self.B, self.C),
             "DE": (self.D, self.E),
             "HL": (self.H, self.L),
@@ -97,4 +98,6 @@ class CPU:
 
     def __repr__(self) -> str:
         s = "\n".join([f"{k} {v}" for k, v in self.registers.items()])
+        for register in ["AF", "BC", "DE", "HL", "SP", "PC"]:
+            s += f"\n{register}= {self.get_value(register):04X}"
         return s

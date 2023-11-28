@@ -89,12 +89,12 @@ class LCD:
         bg = None
         tmp = []
         for i in range(0x8000, 0x9000, 16):
-            print(f"{i:04x}")
+            # print(f"{i:04x}")
             data = [mem.get(i + j) for j in range(16)]
-            if i == 0x8190:
-                for d in data:
-                    print(f"{d:02x}")
-                print(mem.get(0xff47))
+            # if i == 0x8190:
+            # for d in data:
+            # print(f"{d:02x}")
+            # print(mem.get(0xff47))
             img = data_to_tile(data, mem.get(0xff47))
             img = integer_resize(img, 10)
             tmp.append(img)

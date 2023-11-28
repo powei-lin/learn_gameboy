@@ -261,9 +261,14 @@ def parse_PUSH(command: str) -> str:
 
 def parse_RL(command: str) -> str:
     # rotate left
-    operand = command[3:]
+    if command == "RLA":
+        operand = "A"
+    else:
+        operand = command[3:]
     if operand in CPU_REGISTORS:
         s = f"v = ({cpu_get_value_str(operand)} << 1){NEXT_LINE_INDENT}"
+        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f'v += 1{NEXT_LINE_INDENT}'
         s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
         s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{cpu_set_value_str(operand)}{NEXT_LINE_INDENT}'
@@ -271,6 +276,8 @@ def parse_RL(command: str) -> str:
     else:  # (HL)
         s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
         s += f"v = ({memory_get_str()} << 1){NEXT_LINE_INDENT}"
+        s += f'if cpu.get_flag("C"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f'v += 1{NEXT_LINE_INDENT}'
         s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
         s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{memory_set_str()}{NEXT_LINE_INDENT}'
@@ -378,7 +385,7 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     elif command[:5] == "PUSH ":
         return True, parse_PUSH(command)
 
-    elif command[:3] == "RL ":
+    elif command[:3] == "RL " or command[:3] == "RLA":
         return True, parse_RL(command)
 
     elif command[:4] == "POP ":
