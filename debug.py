@@ -28,5 +28,11 @@ def debug_ram(ram: List[int]):
     return np.hstack((ram_img, np.vstack(ram_section_img)))
 
 
-def integer_resize(img: np.ndarray, scale: int):
-    return np.repeat(np.repeat(img, scale, axis=1), scale, axis=0)
+def integer_resize(img: np.ndarray, scale: int, *, with_outline: bool = False):
+    out_img = np.repeat(np.repeat(img, scale, axis=1), scale, axis=0)
+    if with_outline:
+        out_img[0, :] = 0
+        out_img[-1, :] = 0
+        out_img[:, 0] = 0
+        out_img[:, -1] = 0
+    return out_img

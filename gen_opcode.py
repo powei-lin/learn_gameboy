@@ -468,8 +468,7 @@ def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
     pass
 
 
-if __name__ == '__main__':
-
+def generate_opcode():
     file_prefix = [("./data/cpu_instructions.tsv", "IS", 0x000),
                    ("./data/prefix_cb.tsv", "CB", 0x100)]
     ouput_file_name = "generated_opcode.py"
@@ -505,3 +504,7 @@ if __name__ == '__main__':
                 count += 1
     instructions_to_py(ouput_file_name, all_ins)
     print(f"Writing to {ouput_file_name} done")
+
+
+if __name__ == '__main__':
+    generate_opcode()

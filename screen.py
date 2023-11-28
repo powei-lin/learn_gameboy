@@ -96,7 +96,7 @@ class LCD:
             # print(f"{d:02x}")
             # print(mem.get(0xff47))
             img = data_to_tile(data, mem.get(0xff47))
-            img = integer_resize(img, 10)
+            img = integer_resize(img, 10, with_outline=True)
             tmp.append(img)
             if len(tmp) == 32:
                 combined = np.hstack(tmp)
@@ -118,11 +118,7 @@ class LCD:
             for i in range(0x9800, 0x9c00):
                 tile_idx = mem.get(i) * 16 + 0x8000
                 img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
-                img = integer_resize(img, 10)
-                img[0, :] = 0
-                img[-1, :] = 0
-                img[:, 0] = 0
-                img[:, -1] = 0
+                img = integer_resize(img, 5, with_outline=True)
                 tmp.append(img)
                 if len(tmp) == 32:
                     combined = np.hstack(tmp)
@@ -133,8 +129,6 @@ class LCD:
                     tmp = []
             cv2.imshow("bg", bg)
             cv2.waitKey(0)
-            exit()
-
             while self.ly < 144:
                 if self.mode_flag == 0:
                     print("HBLANK")

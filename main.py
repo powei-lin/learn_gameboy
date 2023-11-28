@@ -1,4 +1,11 @@
-from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
+try:
+    from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
+except ModuleNotFoundError:
+    from gen_opcode import generate_opcode
+    generate_opcode()
+    from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
+
+from pathlib import Path
 import cv2
 import numpy as np
 from debug import debug_ram
@@ -31,7 +38,6 @@ if __name__ == '__main__':
     with open("DMG_ROM.bin", 'rb') as boot_rom:
         rom = boot_rom.read()
     with open("Tetris.gb", 'rb') as cartridge:
-        # with open("cartridge.gb", 'rb') as cartridge:
         game_rom = cartridge.read()
     # game_rom = None
     cpu = CPU()
@@ -71,3 +77,7 @@ if __name__ == '__main__':
         cv2.waitKey(0)
         print()
         # input()
+    generated_opcode_path = Path("generated_opcode.py")
+    if generated_opcode_path.exists():
+        print("SSSS")
+        generated_opcode_path.unlink()
