@@ -108,27 +108,28 @@ class LCD:
         cv2.imshow("bg", bg)
         cv2.waitKey(0)
 
+    def show_bg_map(self, mem: Memory):
+        bg = None
+        tmp = []
+        for i in range(0x9800, 0x9c00):
+            tile_idx = mem.get(i) * 16 + 0x8000
+            img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
+            img = integer_resize(img, 5, with_outline=True)
+            tmp.append(img)
+            if len(tmp) == 32:
+                combined = np.hstack(tmp)
+                if bg is not None:
+                    bg = np.vstack((bg, combined))
+                else:
+                    bg = combined
+                tmp = []
+        cv2.imshow("bg", bg)
+        cv2.waitKey(0)
+
     def tick(self, mem: Memory):
         self._check_control(mem.get(CONTROL_ADDR_RW))
         if self.lcd_display_enable > 0:
-            self.show_bg_tiles(mem)
 
-            bg = None
-            tmp = []
-            for i in range(0x9800, 0x9c00):
-                tile_idx = mem.get(i) * 16 + 0x8000
-                img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
-                img = integer_resize(img, 5, with_outline=True)
-                tmp.append(img)
-                if len(tmp) == 32:
-                    combined = np.hstack(tmp)
-                    if bg is not None:
-                        bg = np.vstack((bg, combined))
-                    else:
-                        bg = combined
-                    tmp = []
-            cv2.imshow("bg", bg)
-            cv2.waitKey(0)
             while self.ly < 144:
                 if self.mode_flag == 0:
                     print("HBLANK")

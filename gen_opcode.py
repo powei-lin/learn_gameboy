@@ -465,8 +465,6 @@ def instructions_to_py(output: str, all_ins: Dict[str, InstructionParser]):
             ofile.write(f"{SPACE_4}0x{int(k, base=16):03x}: {v.name()},  # {v.command}\n")
         ofile.write("}\n")
 
-    pass
-
 
 def generate_opcode():
     file_prefix = [("./data/cpu_instructions.tsv", "IS", 0x000),
