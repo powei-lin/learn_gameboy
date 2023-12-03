@@ -26,7 +26,7 @@ def tick(cpu: CPU, memory: Memory, lcd: LCD):
     if op_addr == 0xcb:
         op_addr = fetch(cpu, memory)
         op_addr += 0x100
-    print(f"Fetched intruction 0x{op_addr:03x}")
+    # print(f"Fetched intruction 0x{op_addr:03x}")
     # execute
     cycle = INSTRUCTION_TABLE[op_addr](cpu, memory)
     lcd.tick(memory)
@@ -45,11 +45,6 @@ if __name__ == '__main__':
     lcd = LCD()
     pc_val = set()
 
-    # lcd.show()
-
-    # arr = np.array(mem.ram, dtype=np.uint8).reshape(256, -1)
-    # cv2.imshow("ram", arr)
-    # cv2.waitKey(0)
     count_cycle = 0
     try:
         count = 0

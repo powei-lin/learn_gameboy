@@ -39,12 +39,20 @@ class PPUState(IntEnum):
     DRAWING = 3
 
 
+class FetcherState(IntEnum):
+    ReadTileID = 0
+    ReadTileData0 = 1
+    ReadTileData1 = 2
+    PushToFIFO = 3
+
+
 class PixelFetcher:
     def __init__(self) -> None:
         self.buffer = []
         self.remain_ticks = 0
         self.tile_index = 0
         self.tile_line = 0
+        self.state = FetcherState.ReadTileID
 
     def tick(self, mem: Memory, pixel_fifo: List[int]):
         pass
@@ -57,8 +65,9 @@ class LCD:
         self.screen_list = []
         self.pixel_fifo = []
         self.pixel_fetcher = PixelFetcher()
-        self.current_state = PPUState.HBLANK
+        self.current_state = PPUState.OAM
         self.remain_ticks = 0
+        self.count_ticks = 0
 
         # FF40 (order bit 7 -> 0)
         self.lcd_display_enable = 0              # (0=Off, 1=On)
@@ -83,6 +92,7 @@ class LCD:
         # 3: During Transfering Data to LCD Driver
 
         self.ly = 0
+        self.lx = 0
         self.lyc = 0
 
     def show(self):
@@ -104,12 +114,7 @@ class LCD:
         bg = None
         tmp = []
         for i in range(0x8000, 0x9000, 16):
-            # print(f"{i:04x}")
             data = [mem.get(i + j) for j in range(16)]
-            # if i == 0x8190:
-            # for d in data:
-            # print(f"{d:02x}")
-            # print(mem.get(0xff47))
             img = data_to_tile(data, mem.get(0xff47))
             img = integer_resize(img, 10, with_outline=True)
             tmp.append(img)
@@ -138,45 +143,70 @@ class LCD:
                 else:
                     bg = combined
                 tmp = []
+        print(bg.shape)
         cv2.imshow("bg", bg)
         cv2.waitKey(0)
 
-    def tick(self, mem: Memory, cpu_cycle: int = 1):
-        self.remain_ticks += cpu_cycle
+    def _check_all_registers(self, mem: Memory):
+        # self.ly = mem.get(Y_COORDINATE_R)
+        # self.lyc = mem.get(LY_COMPARE_RW)
         self._check_control(mem.get(CONTROL_ADDR_RW))
-        if self.lcd_display_enable > 0:
 
-            while self.ly < 144:
+    def tick(self, mem: Memory, cpu_cycle: int = 1):
+        self._check_all_registers(mem)
+
+        if self.lcd_display_enable > 0:
+            self.remain_ticks += cpu_cycle * 4
+
+            while self.remain_ticks >= 2:
+                self.remain_ticks -= 2
+                self.count_ticks += 2
+
                 if self.current_state == PPUState.HBLANK:
-                    if self.ly == 144:
-                        self.current_state = PPUState.VBLANK
-                    else:
-                        self.current_state = PPUState.OAM
-                    pass
+                    if self.count_ticks == 456:
+                        self.count_ticks = 0
+                        self.ly += 1
+                        self.lx = 0
+                        if self.ly == 144:
+                            self.current_state = PPUState.VBLANK
+                            print("!!!!!!!!!!!!!!!!!!")
+                            print("HB -> VB")
+                        else:
+                            self.current_state = PPUState.OAM
+                            print("HB -> OAM")
+
                 elif self.current_state == PPUState.VBLANK:
-                    self.current_state = PPUState.OAM
+                    if self.count_ticks == 456:
+                        self.count_ticks = 0
+                        self.ly += 1
+                        if self.ly == 153:
+                            self.ly = 0
+                            self.current_state = PPUState.OAM
+                            print("VB -> OAM")
                 elif self.current_state == PPUState.OAM:
-                    if self.remain_ticks >= 40:
+                    if self.count_ticks >= 40:
                         self.current_state = PPUState.DRAWING
+                        print("OAM -> DRAW")
+
                 elif self.current_state == PPUState.DRAWING:
                     # p.x = 0
                     # tileLine := p.LY % 8
                     # tileMapRowAddr := 0x9800 + (uint16(p.LY/8) * 32)
-                    self.current_state = PPUState.HBLANK
+                    self.lx += 1
+                    if self.lx >= 160:
+                        self.current_state = PPUState.HBLANK
+                        print("DRAW -> HB")
                 else:
                     raise ValueError
-                break
 
-            self.ly = mem.get(Y_COORDINATE_R)
-            self.lyc = mem.get(LY_COMPARE_RW)
-            print("ly", self.ly)
+            # print("ly", self.ly)
             scy = mem.get(0xff42)
             scx = mem.get(0xff43)
-            for i in range(0xff40, 0xff4a):
-                v = mem.get(i)
-                print(f"{i:04x}, {v:08b}, {v}")
-            print("LCD turned on")
-            self.show_bg_tiles(mem)
-            self.show_bg_map(mem)
+            # for i in range(0xff40, 0xff4a):
+            #     v = mem.get(i)
+            #     print(f"{i:04x}, {v:08b}, {v}")
+            # print("LCD turned on")
+            # self.show_bg_tiles(mem)
+            # self.show_bg_map(mem)
             print(scx, scy)
             raise NotImplementedError

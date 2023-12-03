@@ -11,8 +11,23 @@ class Memory:
         self.game_rom = game_rom
         if randomize:
             self.ram = [randint(0, 0xff) for _ in range(2**16)]
+
         else:
             self.ram = [0 for _ in range(2**16)]
+
+        # io map is not ramdom
+        self.ram[0xff40] = 0
+        self.ram[0xff41] = 0x84
+        self.ram[0xff42] = 0
+        self.ram[0xff43] = 0
+        self.ram[0xff44] = 0
+        self.ram[0xff45] = 0
+        self.ram[0xff46] = 0xff
+        self.ram[0xff47] = 0xfc
+        self.ram[0xff48] = 0xff
+        self.ram[0xff49] = 0xff
+        self.ram[0xff4a] = 0
+        self.ram[0xff4b] = 0
 
     def get(self, addr: int):
         if self.initialized or addr > 0xff:
