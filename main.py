@@ -41,7 +41,7 @@ if __name__ == '__main__':
         game_rom = cartridge.read()
     # game_rom = None
     cpu = CPU()
-    mem = Memory(rom, game_rom, randomize=False)
+    mem = Memory(rom, game_rom, randomize=True)
     lcd = LCD()
     pc_val = set()
 
@@ -79,5 +79,4 @@ if __name__ == '__main__':
         # input()
     generated_opcode_path = Path("generated_opcode.py")
     if generated_opcode_path.exists():
-        print("SSSS")
         generated_opcode_path.unlink()

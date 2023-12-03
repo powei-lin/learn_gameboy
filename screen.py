@@ -39,10 +39,26 @@ class PPUState(IntEnum):
     DRAWING = 3
 
 
+class PixelFetcher:
+    def __init__(self) -> None:
+        self.buffer = []
+        self.remain_ticks = 0
+        self.tile_index = 0
+        self.tile_line = 0
+
+    def tick(self, mem: Memory, pixel_fifo: List[int]):
+        pass
+
+
 class LCD:
     def __init__(self):
         self.screen = np.ones((LCD_HEIGHT, LCD_WIDTH), np.uint8) * 255
         self.bg_map = np.ones((BG_SIZE, BG_SIZE), np.uint8) * 255
+        self.screen_list = []
+        self.pixel_fifo = []
+        self.pixel_fetcher = PixelFetcher()
+        self.current_state = PPUState.HBLANK
+        self.remain_ticks = 0
 
         # FF40 (order bit 7 -> 0)
         self.lcd_display_enable = 0              # (0=Off, 1=On)
@@ -68,7 +84,6 @@ class LCD:
 
         self.ly = 0
         self.lyc = 0
-        self.count_tick = 0
 
     def show(self):
         cv2.imshow("screen", self.screen)
@@ -108,13 +123,13 @@ class LCD:
         cv2.imshow("bg", bg)
         cv2.waitKey(0)
 
-    def show_bg_map(self, mem: Memory):
+    def show_bg_map(self, mem: Memory, resize_scale: int = 5):
         bg = None
         tmp = []
         for i in range(0x9800, 0x9c00):
             tile_idx = mem.get(i) * 16 + 0x8000
             img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
-            img = integer_resize(img, 5, with_outline=True)
+            img = integer_resize(img, resize_scale, with_outline=True)
             tmp.append(img)
             if len(tmp) == 32:
                 combined = np.hstack(tmp)
@@ -126,23 +141,28 @@ class LCD:
         cv2.imshow("bg", bg)
         cv2.waitKey(0)
 
-    def tick(self, mem: Memory):
+    def tick(self, mem: Memory, cpu_cycle: int = 1):
+        self.remain_ticks += cpu_cycle
         self._check_control(mem.get(CONTROL_ADDR_RW))
         if self.lcd_display_enable > 0:
 
             while self.ly < 144:
-                if self.mode_flag == 0:
-                    print("HBLANK")
+                if self.current_state == PPUState.HBLANK:
+                    if self.ly == 144:
+                        self.current_state = PPUState.VBLANK
+                    else:
+                        self.current_state = PPUState.OAM
                     pass
-                elif self.mode_flag == 1:
-                    print("VBLANK")
-                    pass
-                elif self.mode_flag == 2:
-                    print("OAM")
-                    pass
-                elif self.mode_flag == 3:
-                    print("DRAWING")
-                    pass
+                elif self.current_state == PPUState.VBLANK:
+                    self.current_state = PPUState.OAM
+                elif self.current_state == PPUState.OAM:
+                    if self.remain_ticks >= 40:
+                        self.current_state = PPUState.DRAWING
+                elif self.current_state == PPUState.DRAWING:
+                    # p.x = 0
+                    # tileLine := p.LY % 8
+                    # tileMapRowAddr := 0x9800 + (uint16(p.LY/8) * 32)
+                    self.current_state = PPUState.HBLANK
                 else:
                     raise ValueError
                 break
@@ -156,4 +176,7 @@ class LCD:
                 v = mem.get(i)
                 print(f"{i:04x}, {v:08b}, {v}")
             print("LCD turned on")
-            exit()
+            self.show_bg_tiles(mem)
+            self.show_bg_map(mem)
+            print(scx, scy)
+            raise NotImplementedError
