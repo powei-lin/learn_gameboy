@@ -21,10 +21,10 @@ BG_SIZE = 256
 GRAY_SHADES = [255, 170, 85, 0]
 
 
-def data_to_tile(data: List[int], palette: int = 0):
-    if len(data) != 16:
+def data_to_tile(data: List[int], palette: int = 0) -> np.ndarray:
+    if len(data) % 2 != 0:
         raise ValueError
-    i = np.array(data, dtype=np.uint8).reshape(8, 2)
+    i = np.array(data, dtype=np.uint8).reshape(-1, 2)
     i = np.unpackbits(i, axis=1)
     i = (i[:, :8] + i[:, 8:] * 2)
     p = [0b11 & (palette >> (j * 2)) for j in range(4)]
@@ -41,21 +41,46 @@ class PPUState(IntEnum):
 
 class FetcherState(IntEnum):
     ReadTileID = 0
-    ReadTileData0 = 1
-    ReadTileData1 = 2
-    PushToFIFO = 3
+    ReadTileData = 1
+    PushToFIFO = 2
+    Idle = 3
 
 
 class PixelFetcher:
     def __init__(self) -> None:
         self.buffer = []
-        self.remain_ticks = 0
-        self.tile_index = 0
         self.tile_line = 0
+        self.tile_idx_addr = 0
+        self.tile_idx = 0
         self.state = FetcherState.ReadTileID
 
     def tick(self, mem: Memory, pixel_fifo: List[int]):
-        pass
+        if self.state == FetcherState.ReadTileID:
+            print("read id")
+            self.tile_idx = mem.get(self.tile_idx_addr)
+            self.state = FetcherState.ReadTileData
+        elif self.state == FetcherState.ReadTileData:
+            print("read data")
+            offset = 0x8000 + self.tile_idx * 16
+            addr = offset + self.tile_line * 2
+            data = [mem.get(addr), mem.get(addr + 1)]
+            self.buffer = data_to_tile(data, mem.get(0xff47)).flatten().tolist()
+            self.state = FetcherState.PushToFIFO
+        elif self.state == FetcherState.PushToFIFO:
+            print("push data")
+            if len(pixel_fifo) == 0:
+                pixel_fifo += self.buffer
+                self.buffer = []
+                self.tile_idx_addr += 1
+                self.state = FetcherState.ReadTileID
+        else:
+            raise ValueError
+
+    def start(self, tile_idx_addr: int, tile_line: int):
+        self.buffer = []
+        self.tile_idx_addr = tile_idx_addr
+        self.tile_line = tile_line
+        self.state = FetcherState.ReadTileID
 
 
 class LCD:
@@ -98,7 +123,7 @@ class LCD:
     def show(self):
         cv2.imshow("screen", self.screen)
         cv2.imshow("bg", self.bg_map)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
 
     def _check_control(self, value: int):
         self.lcd_display_enable = ((value >> 7) & 1)
@@ -126,14 +151,15 @@ class LCD:
                     bg = combined
                 tmp = []
         cv2.imshow("bg", bg)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
 
     def show_bg_map(self, mem: Memory, resize_scale: int = 5):
         bg = None
         tmp = []
         for i in range(0x9800, 0x9c00):
-            tile_idx = mem.get(i) * 16 + 0x8000
-            img = data_to_tile([mem.get(tile_idx + j) for j in range(16)], mem.get(0xff47))
+            tile_idx = mem.get(i)
+            tile_data_addr = tile_idx * 16 + 0x8000
+            img = data_to_tile([mem.get(tile_data_addr + j) for j in range(16)], mem.get(0xff47))
             img = integer_resize(img, resize_scale, with_outline=True)
             tmp.append(img)
             if len(tmp) == 32:
@@ -143,9 +169,19 @@ class LCD:
                 else:
                     bg = combined
                 tmp = []
-        print(bg.shape)
+        bg = cv2.cvtColor(bg, cv2.COLOR_GRAY2BGR)
+        scy = mem.get(0xff42)
+        scx = mem.get(0xff43)
+        tl = (scx * resize_scale, scy * resize_scale)
+        tr = ((scx + LCD_WIDTH) * resize_scale, scy * resize_scale)
+        bl = (scx * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
+        br = ((scx + LCD_WIDTH) * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
+        cv2.line(bg, tl, tr, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        cv2.line(bg, tl, bl, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        cv2.line(bg, bl, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        cv2.line(bg, tr, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
         cv2.imshow("bg", bg)
-        cv2.waitKey(0)
+        # cv2.waitKey(1)
 
     def _check_all_registers(self, mem: Memory):
         # self.ly = mem.get(Y_COORDINATE_R)
@@ -163,13 +199,17 @@ class LCD:
                 self.count_ticks += 2
 
                 if self.current_state == PPUState.HBLANK:
-                    if self.count_ticks == 456:
+                    print("count tick", self.count_ticks)
+                    if self.count_ticks >= 456:
                         self.count_ticks = 0
                         self.ly += 1
-                        self.lx = 0
                         if self.ly == 144:
+                            img = np.array(self.screen_list, dtype=np.uint8).reshape(144, 160)
+                            cv2.imshow("sc", img)
+                            self.show_bg_map(mem)
+                            cv2.waitKey(0)
+                            self.screen_list.clear()
                             self.current_state = PPUState.VBLANK
-                            print("!!!!!!!!!!!!!!!!!!")
                             print("HB -> VB")
                         else:
                             self.current_state = PPUState.OAM
@@ -185,14 +225,19 @@ class LCD:
                             print("VB -> OAM")
                 elif self.current_state == PPUState.OAM:
                     if self.count_ticks >= 40:
+                        self.lx = 0
                         self.current_state = PPUState.DRAWING
+                        tile_line = self.ly % 8
+                        tile_idx_addr = 0x9800 + (self.ly // 8) * 32
+                        self.pixel_fetcher.start(tile_idx_addr, tile_line)
                         print("OAM -> DRAW")
 
                 elif self.current_state == PPUState.DRAWING:
-                    # p.x = 0
-                    # tileLine := p.LY % 8
-                    # tileMapRowAddr := 0x9800 + (uint16(p.LY/8) * 32)
-                    self.lx += 1
+                    self.pixel_fetcher.tick(mem, self.pixel_fifo)
+                    if self.pixel_fifo:
+                        self.screen_list.append(self.pixel_fifo.pop(0))
+                        self.lx += 1
+
                     if self.lx >= 160:
                         self.current_state = PPUState.HBLANK
                         print("DRAW -> HB")
@@ -207,6 +252,3 @@ class LCD:
             #     print(f"{i:04x}, {v:08b}, {v}")
             # print("LCD turned on")
             # self.show_bg_tiles(mem)
-            # self.show_bg_map(mem)
-            print(scx, scy)
-            raise NotImplementedError
