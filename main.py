@@ -26,12 +26,12 @@ def tick(cpu: CPU, memory: Memory, lcd: LCD):
     if op_addr == 0xcb:
         op_addr = fetch(cpu, memory)
         op_addr += 0x100
-    # print(f"Fetched intruction 0x{op_addr:03x}")
+    print(f"Fetched intruction 0x{op_addr:03x}")
     # execute
-    cycle = INSTRUCTION_TABLE[op_addr](cpu, memory)
-    lcd.tick(memory)
+    cpu_cycle = INSTRUCTION_TABLE[op_addr](cpu, memory)
+    lcd.tick(memory, cpu_cycle)
     # print(f"current cycle: {cycle}")
-    return cycle
+    return cpu_cycle
 
 
 if __name__ == '__main__':
@@ -72,6 +72,4 @@ if __name__ == '__main__':
         cv2.waitKey(0)
         print()
         # input()
-    generated_opcode_path = Path("generated_opcode.py")
-    if generated_opcode_path.exists():
-        generated_opcode_path.unlink()
+    Path("generated_opcode.py").unlink(missing_ok=True)

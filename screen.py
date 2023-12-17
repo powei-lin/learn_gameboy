@@ -20,6 +20,9 @@ BG_SIZE = 256
 
 GRAY_SHADES = [255, 170, 85, 0]
 
+# PPU FIFO 4MHz
+# Fetcher 2 Mhz, fetch 2 pixel per tick
+
 
 def data_to_tile(data: List[int], palette: int = 0) -> np.ndarray:
     if len(data) % 2 != 0:
@@ -47,6 +50,7 @@ class FetcherState(IntEnum):
 
 
 class PixelFetcher:
+    # 2 MHz
     def __init__(self) -> None:
         self.buffer = []
         self.tile_line = 0
@@ -56,18 +60,18 @@ class PixelFetcher:
 
     def tick(self, mem: Memory, pixel_fifo: List[int]):
         if self.state == FetcherState.ReadTileID:
-            print("read id")
+            # print("read id")
             self.tile_idx = mem.get(self.tile_idx_addr)
             self.state = FetcherState.ReadTileData
         elif self.state == FetcherState.ReadTileData:
-            print("read data")
+            # print("read data")
             offset = 0x8000 + self.tile_idx * 16
             addr = offset + self.tile_line * 2
             data = [mem.get(addr), mem.get(addr + 1)]
             self.buffer = data_to_tile(data, mem.get(0xff47)).flatten().tolist()
             self.state = FetcherState.PushToFIFO
         elif self.state == FetcherState.PushToFIFO:
-            print("push data")
+            # print("push data")
             if len(pixel_fifo) == 0:
                 pixel_fifo += self.buffer
                 self.buffer = []
@@ -192,7 +196,7 @@ class LCD:
         self._check_all_registers(mem)
 
         if self.lcd_display_enable > 0:
-            self.remain_ticks += cpu_cycle * 4
+            self.remain_ticks += cpu_cycle // 4
 
             while self.remain_ticks >= 2:
                 self.remain_ticks -= 2
@@ -225,10 +229,11 @@ class LCD:
                             print("VB -> OAM")
                 elif self.current_state == PPUState.OAM:
                     if self.count_ticks >= 40:
+                        scy = mem.get(0xff42)
                         self.lx = 0
                         self.current_state = PPUState.DRAWING
-                        tile_line = self.ly % 8
-                        tile_idx_addr = 0x9800 + (self.ly // 8) * 32
+                        tile_line = (self.ly + scy) % 8
+                        tile_idx_addr = 0x9800 + ((self.ly + scy) // 8) * 32
                         self.pixel_fetcher.start(tile_idx_addr, tile_line)
                         print("OAM -> DRAW")
 
