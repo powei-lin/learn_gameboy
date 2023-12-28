@@ -35,9 +35,9 @@ def tick(cpu: CPU, memory: Memory, lcd: LCD):
 
 
 if __name__ == '__main__':
-    with open("DMG_ROM.bin", 'rb') as boot_rom:
+    with open("roms/DMG_ROM.bin", 'rb') as boot_rom:
         rom = boot_rom.read()
-    with open("Tetris.gb", 'rb') as cartridge:
+    with open("roms/Tetris.gb", 'rb') as cartridge:
         game_rom = cartridge.read()
     # game_rom = None
     mem = Memory(rom, game_rom, randomize=True)
