@@ -88,9 +88,8 @@ class PixelFetcher:
 
 
 class LCD:
-    def __init__(self):
+    def __init__(self, mem: Memory):
         self.screen = np.ones((LCD_HEIGHT, LCD_WIDTH), np.uint8) * 255
-        self.bg_map = np.ones((BG_SIZE, BG_SIZE), np.uint8) * 255
         self.screen_list = []
         self.pixel_fifo = []
         self.pixel_fetcher = PixelFetcher()
@@ -120,9 +119,28 @@ class LCD:
         # 2: During Searching OAM-RAM
         # 3: During Transfering Data to LCD Driver
 
-        self.ly = 0
+        self.mem = mem
         self.lx = 0
-        self.lyc = 0
+
+        # debug
+        self.bg_map = np.ones((BG_SIZE, BG_SIZE), np.uint8) * 255
+
+    # All registers
+    @property
+    def ly(self):
+        return self.mem.get(Y_COORDINATE_R)
+
+    @ly.setter
+    def ly(self, value: int):
+        self.mem.set(Y_COORDINATE_R, value)
+
+    @property
+    def lyc(self):
+        return self.mem.get(LY_COMPARE_RW)
+
+    @lyc.setter
+    def lyc(self, value: int):
+        self.mem.set(LY_COMPARE_RW, value)
 
     def show(self):
         cv2.imshow("screen", self.screen)
@@ -187,13 +205,14 @@ class LCD:
         cv2.imshow("bg", bg)
         # cv2.waitKey(1)
 
-    def _check_all_registers(self, mem: Memory):
+    def _get_all_register_values(self, mem: Memory):
         # self.ly = mem.get(Y_COORDINATE_R)
         # self.lyc = mem.get(LY_COMPARE_RW)
         self._check_control(mem.get(CONTROL_ADDR_RW))
 
     def tick(self, mem: Memory, cpu_cycle: int = 1):
-        self._check_all_registers(mem)
+        """Check """
+        self._get_all_register_values(mem)
 
         if self.lcd_display_enable > 0:
             self.remain_ticks += cpu_cycle // 4

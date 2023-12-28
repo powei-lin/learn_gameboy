@@ -40,17 +40,17 @@ if __name__ == '__main__':
     with open("Tetris.gb", 'rb') as cartridge:
         game_rom = cartridge.read()
     # game_rom = None
-    cpu = CPU()
     mem = Memory(rom, game_rom, randomize=True)
-    lcd = LCD()
-    pc_val = set()
+    cpu = CPU()
+    lcd = LCD(mem)
+    pc_val_debug = set()
 
     count_cycle = 0
     try:
         count = 0
         while True:
-            if cpu.PC.value not in pc_val:
-                pc_val.add(cpu.PC.value)
+            if cpu.PC.value not in pc_val_debug:
+                pc_val_debug.add(cpu.PC.value)
                 print(f"{count}---------------")
                 print("CPU:")
                 print(cpu)
