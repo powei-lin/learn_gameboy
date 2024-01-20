@@ -222,7 +222,7 @@ class LCD:
                 self.count_ticks += 2
 
                 if self.current_state == PPUState.HBLANK:
-                    print("count tick", self.count_ticks)
+                    print("HBLANK")
                     if self.count_ticks >= 456:
                         self.count_ticks = 0
                         self.ly += 1
@@ -239,6 +239,7 @@ class LCD:
                             print("HB -> OAM")
 
                 elif self.current_state == PPUState.VBLANK:
+                    print("VBLANK")
                     if self.count_ticks == 456:
                         self.count_ticks = 0
                         self.ly += 1
@@ -247,6 +248,7 @@ class LCD:
                             self.current_state = PPUState.OAM
                             print("VB -> OAM")
                 elif self.current_state == PPUState.OAM:
+                    print("OAM")
                     if self.count_ticks >= 40:
                         scy = mem.get(0xff42)
                         self.lx = 0
@@ -257,6 +259,7 @@ class LCD:
                         print("OAM -> DRAW")
 
                 elif self.current_state == PPUState.DRAWING:
+                    print("Drawing")
                     self.pixel_fetcher.tick(mem, self.pixel_fifo)
                     if self.pixel_fifo:
                         self.screen_list.append(self.pixel_fifo.pop(0))
@@ -267,7 +270,7 @@ class LCD:
                         print("DRAW -> HB")
                 else:
                     raise ValueError
-
+            # input("pause")
             # print("ly", self.ly)
             scy = mem.get(0xff42)
             scx = mem.get(0xff43)

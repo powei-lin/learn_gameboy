@@ -29,6 +29,10 @@ class Memory:
         self.ram[0xff4a] = 0
         self.ram[0xff4b] = 0
 
+        # VRAM and OAM access
+        self.vram_accessible = True
+        self.oam_accessible = True
+
     def get(self, addr: int):
         if self.initialized or addr > 0xff:
             if addr < 0x8000:
@@ -36,11 +40,17 @@ class Memory:
                 return self.game_rom[addr]
             elif addr < 0xa000:
                 # VRAM
-                return self.ram[addr]
+                if self.vram_accessible:
+                    return self.ram[addr]
+                else:
+                    return 0xff
             else:
                 return self.ram[addr]
         else:
             return self.boot_rom[addr]
 
     def set(self, addr: int, val: int):
-        self.ram[addr] = val
+        if addr < 0x8000 or addr >= 0xa000:
+            self.ram[addr] = val
+        elif self.vram_accessible:
+            self.ram[addr] = val

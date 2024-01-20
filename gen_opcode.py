@@ -360,6 +360,26 @@ def parse_CP(command: str) -> str:
     return s
 
 
+def parse_SUB(command: str) -> str:
+    # Compare A to the operand
+    # s = f'{NOT_IMPLEMENTED_ERROR_STR}  SUB'
+    operand = command[4:]
+    if operand == 'd8':
+        s = f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f'cpu.PC.value += 1{NEXT_LINE_INDENT}'
+        s += f't = {memory_get_str()}{NEXT_LINE_INDENT}'
+    elif operand in CPU_REGISTORS:
+        s = f't = {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}'
+    else:  # (HL)
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f't = {memory_get_str()}{NEXT_LINE_INDENT}'
+    s += f'v = cpu.A.value - t{NEXT_LINE_INDENT}'
+    s += f'h = ((cpu.A.value & 0xf) < (t & 0xf)){NEXT_LINE_INDENT}'
+    s += f'c = (v < 0){NEXT_LINE_INDENT}'
+    s += f'cpu.A.value -= t'
+    return s
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -400,6 +420,9 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:3] == "CP ":
         return True, parse_CP(command)
+
+    elif command[:4] == "SUB ":
+        return True, parse_SUB(command)
 
     return False, ""
 
