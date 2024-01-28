@@ -145,7 +145,7 @@ class LCD:
     def show(self):
         cv2.imshow("screen", self.screen)
         cv2.imshow("bg", self.bg_map)
-        cv2.waitKey(1)
+        # cv2.waitKey(1)
 
     def _check_control(self, value: int):
         self.lcd_display_enable = ((value >> 7) & 1)
@@ -173,9 +173,9 @@ class LCD:
                     bg = combined
                 tmp = []
         cv2.imshow("bg", bg)
-        cv2.waitKey(1)
+        # cv2.waitKey(1)
 
-    def show_bg_map(self, mem: Memory, resize_scale: int = 5):
+    def show_bg_map(self, mem: Memory, resize_scale: int = 4):
         bg = None
         tmp = []
         for i in range(0x9800, 0x9c00):
@@ -202,7 +202,7 @@ class LCD:
         cv2.line(bg, tl, bl, (0, 0, 255), thickness=resize_scale // 2 + 1)
         cv2.line(bg, bl, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
         cv2.line(bg, tr, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
-        cv2.imshow("bg", bg)
+        cv2.imshow("background map", bg)
         # cv2.waitKey(1)
 
     def _get_all_register_values(self, mem: Memory):
@@ -222,33 +222,34 @@ class LCD:
                 self.count_ticks += 2
 
                 if self.current_state == PPUState.HBLANK:
-                    print("HBLANK")
+                    # print("HBLANK")
                     if self.count_ticks >= 456:
                         self.count_ticks = 0
                         self.ly += 1
                         if self.ly == 144:
                             img = np.array(self.screen_list, dtype=np.uint8).reshape(144, 160)
-                            cv2.imshow("sc", img)
+                            img = integer_resize(img, 2)
+                            cv2.imshow("screen", img)
                             self.show_bg_map(mem)
-                            cv2.waitKey(0)
+                            cv2.waitKey(1)
                             self.screen_list.clear()
                             self.current_state = PPUState.VBLANK
-                            print("HB -> VB")
+                            # print("HB -> VB")
                         else:
                             self.current_state = PPUState.OAM
-                            print("HB -> OAM")
+                            # print("HB -> OAM")
 
                 elif self.current_state == PPUState.VBLANK:
-                    print("VBLANK")
+                    # print("VBLANK")
                     if self.count_ticks == 456:
                         self.count_ticks = 0
                         self.ly += 1
                         if self.ly == 153:
                             self.ly = 0
                             self.current_state = PPUState.OAM
-                            print("VB -> OAM")
+                            # print("VB -> OAM")
                 elif self.current_state == PPUState.OAM:
-                    print("OAM")
+                    # print("OAM")
                     if self.count_ticks >= 40:
                         scy = mem.get(0xff42)
                         self.lx = 0
@@ -256,10 +257,10 @@ class LCD:
                         tile_line = (self.ly + scy) % 8
                         tile_idx_addr = 0x9800 + ((self.ly + scy) // 8) * 32
                         self.pixel_fetcher.start(tile_idx_addr, tile_line)
-                        print("OAM -> DRAW")
+                        # print("OAM -> DRAW")
 
                 elif self.current_state == PPUState.DRAWING:
-                    print("Drawing")
+                    # print("Drawing")
                     self.pixel_fetcher.tick(mem, self.pixel_fifo)
                     if self.pixel_fifo:
                         self.screen_list.append(self.pixel_fifo.pop(0))
@@ -267,7 +268,7 @@ class LCD:
 
                     if self.lx >= 160:
                         self.current_state = PPUState.HBLANK
-                        print("DRAW -> HB")
+                        # print("DRAW -> HB")
                 else:
                     raise ValueError
             # input("pause")

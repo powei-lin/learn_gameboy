@@ -1,12 +1,12 @@
 # try:
 #     from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 # except ModuleNotFoundError:
+from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 from screen import LCD
 from debug import debug_ram
 import numpy as np
 import cv2
 from pathlib import Path
-from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 from gen_opcode import generate_opcode
 generate_opcode()
 
@@ -29,7 +29,7 @@ def tick(cpu: CPU, memory: Memory, lcd: LCD):
     # execute
     cpu_cycle = INSTRUCTION_TABLE[op_addr](cpu, memory)
     lcd.tick(memory, cpu_cycle)
-    print(f"current cycle: {cpu_cycle}")
+    # print(f"current cycle: {cpu_cycle}")
     return cpu_cycle
 
 
