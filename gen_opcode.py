@@ -389,14 +389,26 @@ def parse_ADD(command: str) -> str:
         s += f'v = v0 + v1{NEXT_LINE_INDENT}'
         s += f'h = (((v0 & 0xfff) + (v1 & 0xfff)) > 0xfff){NEXT_LINE_INDENT}'
         s += f'c = (v > 0xffff){NEXT_LINE_INDENT}'
+        s += f'v = v & 0xffff{NEXT_LINE_INDENT}'
         s += f'{cpu_set_value_str("HL")}'
         return s
-    elif v1 in CPU_REGISTORS:  #
+    elif v1 in CPU_REGISTORS:  # 8 bit
         s = f'v0 = {cpu_get_value_str(v0)}{NEXT_LINE_INDENT}'
         s += f'v1 = {cpu_get_value_str(v1)}{NEXT_LINE_INDENT}'
         s += f'v = v0 + v1{NEXT_LINE_INDENT}'
         s += f'h = (((v0 & 0xf) + (v1 & 0xf)) > 0xf){NEXT_LINE_INDENT}'
         s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
+        s += f'v = v & 0xff{NEXT_LINE_INDENT}'
+        s += f'{cpu_set_value_str("A")}'
+        return s
+    elif v1 == "(HL)":  # (HL)
+        s = f'v0 = {cpu_get_value_str("A")}{NEXT_LINE_INDENT}'
+        s += f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f'v1 = {memory_get_str()}{NEXT_LINE_INDENT}'
+        s += f'v = v0 + v1{NEXT_LINE_INDENT}'
+        s += f'h = (((v0 & 0xf) + (v1 & 0xf)) > 0xf){NEXT_LINE_INDENT}'
+        s += f'c = (v > 0xff){NEXT_LINE_INDENT}'
+        s += f'v = v & 0xff{NEXT_LINE_INDENT}'
         s += f'{cpu_set_value_str("A")}'
         return s
     else:

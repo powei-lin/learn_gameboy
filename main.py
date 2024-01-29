@@ -1,7 +1,6 @@
 # try:
 #     from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 # except ModuleNotFoundError:
-from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 from screen import LCD
 from debug import debug_ram
 import numpy as np
@@ -9,7 +8,7 @@ import cv2
 from pathlib import Path
 from gen_opcode import generate_opcode
 generate_opcode()
-
+from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 
 def fetch(cpu: CPU, memory: Memory) -> int:
     addr = memory.get(cpu.PC.value)
