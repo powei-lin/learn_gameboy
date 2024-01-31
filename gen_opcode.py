@@ -206,7 +206,8 @@ def parse_INC(command: str) -> str:
     s = get_value_str(operand)
     s += f"v += 1{NEXT_LINE_INDENT}"
     s += f'{set_value_str(operand)}{NEXT_LINE_INDENT}'
-    s += f"h = ((v & 0xF) == 0)"
+    s += f"h = ((v & 0xF) == 0){NEXT_LINE_INDENT}"
+    s += f"{get_value_str(operand)}"
     return s
 
 
@@ -415,6 +416,34 @@ def parse_ADD(command: str) -> str:
         return NOT_IMPLEMENTED_ERROR_STR
 
 
+def parse_JP(command: str, cycle: int) -> str:
+    # Jump
+    operand = command[3:]
+    if operand == "a16":
+        s = f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
+        s += f'v += {memory_get_str("addr + 1")} << 8{NEXT_LINE_INDENT}'
+        s += "cpu.PC.value = v"
+        return s
+    elif operand == "(HL)":
+        s = f"cpu.PC.value = {cpu_get_value_str('HL')}"
+        return s
+    else:
+        condition, a16 = operand.split(",")
+        s = ""
+        if condition[0] == "N":
+            s += f'if cpu.get_flag("{condition[1]}"):{NEXT_LINE_INDENT}{SPACE_4}'
+        else:
+            s += f'if not cpu.get_flag("{condition}"):{NEXT_LINE_INDENT}{SPACE_4}'
+        s += f"cpu.PC.value += 2{NEXT_LINE_INDENT}{SPACE_4}"
+        s += f"return {cycle}{NEXT_LINE_INDENT}"
+        s += f'addr = cpu.PC.value{NEXT_LINE_INDENT}'
+        s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
+        s += f'v += {memory_get_str("addr + 1")} << 8{NEXT_LINE_INDENT}'
+        s += "cpu.PC.value = v"
+        return s
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -461,6 +490,12 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:4] == "ADD ":
         return True, parse_ADD(command)
+
+    elif command[:3] == "NOP":
+        return True, "# no operation"
+
+    elif command[:3] == "JP ":
+        return True, parse_JP(command, skip_cycle)
 
     return False, ""
 

@@ -8,6 +8,7 @@ import cv2
 from pathlib import Path
 from gen_opcode import generate_opcode
 generate_opcode()
+exit()
 from generated_opcode import CPU, Memory, INSTRUCTION_TABLE
 
 def fetch(cpu: CPU, memory: Memory) -> int:
