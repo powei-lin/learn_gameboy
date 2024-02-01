@@ -444,6 +444,22 @@ def parse_JP(command: str, cycle: int) -> str:
         return s
 
 
+def parse_OR(command: str) -> str:
+    # ADD A to the operand
+    operand = command[3:]
+    if operand in CPU_REGISTORS:
+        s = f"v = cpu.A.value | {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}"
+    elif operand == "(HL)":
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f"v = cpu.A.value | {memory_get_str()}{NEXT_LINE_INDENT}"
+        return s
+    else:  # d8
+        s = f"v = cpu.A.value | cpu.PC.value{NEXT_LINE_INDENT}"
+        s += f"cpu.PC.value += 1{NEXT_LINE_INDENT}"
+    s += "cpu.A.value = v"
+    return s
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -496,6 +512,14 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
 
     elif command[:3] == "JP ":
         return True, parse_JP(command, skip_cycle)
+
+    elif command[:2] == "DI":
+        return True, "cpu.interrupt_master_enable = False"
+
+    elif command[:3] == "OR ":
+        return True, parse_OR(command)
+    elif command[:2] == "EI":
+        return True, "cpu.interrupt_master_enable = True"
 
     return False, ""
 
