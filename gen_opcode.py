@@ -474,6 +474,21 @@ def parse_AND(command: str) -> str:
     return s
 
 
+def parse_SWAP(command: str) -> str:
+    # swap lower 4 bit and higher 4 bit
+    operand = command[5:]
+    if operand in CPU_REGISTORS:
+        s = f"v = {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}"
+        s += f"v = ((v >> 4) | ((v & 0x0f) << 4)){NEXT_LINE_INDENT}"
+        s += f"{cpu_set_value_str(operand)}"
+    elif operand == "(HL)":
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f"v = {memory_get_str()}{NEXT_LINE_INDENT}"
+        s += f"v = ((v >> 4) | ((v & 0x0f) << 4)){NEXT_LINE_INDENT}"
+        s += f"{memory_set_str()}"
+    return s
+
+
 def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
     if command[:3] == "LD ":
         return True, parse_LD(command)
@@ -538,6 +553,8 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
         return True, "cpu.A.value = (~cpu.A.value)"
     elif command[:4] == "AND ":
         return True, parse_AND(command)
+    elif command[:5] == "SWAP ":
+        return True, parse_SWAP(command)
 
     return False, ""
 
