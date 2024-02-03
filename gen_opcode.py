@@ -452,9 +452,23 @@ def parse_OR(command: str) -> str:
     elif operand == "(HL)":
         s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
         s += f"v = cpu.A.value | {memory_get_str()}{NEXT_LINE_INDENT}"
-        return s
     else:  # d8
         s = f"v = cpu.A.value | cpu.PC.value{NEXT_LINE_INDENT}"
+        s += f"cpu.PC.value += 1{NEXT_LINE_INDENT}"
+    s += "cpu.A.value = v"
+    return s
+
+
+def parse_AND(command: str) -> str:
+    # ADD A to the operand
+    operand = command[4:]
+    if operand in CPU_REGISTORS:
+        s = f"v = cpu.A.value & {cpu_get_value_str(operand)}{NEXT_LINE_INDENT}"
+    elif operand == "(HL)":
+        s = f'addr = {cpu_get_value_str("HL")}{NEXT_LINE_INDENT}'
+        s += f"v = cpu.A.value & {memory_get_str()}{NEXT_LINE_INDENT}"
+    else:  # d8
+        s = f"v = cpu.A.value & cpu.PC.value{NEXT_LINE_INDENT}"
         s += f"cpu.PC.value += 1{NEXT_LINE_INDENT}"
     s += "cpu.A.value = v"
     return s
@@ -520,6 +534,10 @@ def parse_command(command, skip_cycle=0) -> Tuple[bool, str]:
         return True, parse_OR(command)
     elif command[:2] == "EI":
         return True, "cpu.interrupt_master_enable = True"
+    elif command[:3] == "CPL":
+        return True, "cpu.A.value = (~cpu.A.value)"
+    elif command[:4] == "AND ":
+        return True, parse_AND(command)
 
     return False, ""
 
